@@ -1,4 +1,4 @@
-# xfyunsdk
+# IflySdk
 科大讯飞SDK，目前支持流式语音识别、语音合成
 
 #### 注意
@@ -66,10 +66,6 @@ static async void TTS()
                 AppID = "5c56f257"
             })
             .WithSavePath("test.wav")
-            .UseError((sender, e) =>
-            {
-                Console.WriteLine("错误：" + e.Message);
-            })
             .BuildTTS();
 
         ResultModel<string> result = await iat.ConvertAndSave(str);
