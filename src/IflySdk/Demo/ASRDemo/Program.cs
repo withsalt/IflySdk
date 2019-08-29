@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 
 using IflySdk;
@@ -18,7 +19,7 @@ namespace ASRDemo
 
         static async void ASR()
         {
-            string path = @"test.pcm";  //测试文件路径,自己修改
+            string path = @"03.pcm";  //测试文件路径,自己修改
             byte[] data = File.ReadAllBytes(path);
 
             try
@@ -40,6 +41,10 @@ namespace ASRDemo
                     })
                     .BuildASR();
 
+                //计算识别时间
+                Stopwatch sw = new Stopwatch();
+                sw.Start();
+
                 ResultModel<string> result = await iat.Convert(data);
                 if (result.Code == ResultCode.Success)
                 {
@@ -47,8 +52,11 @@ namespace ASRDemo
                 }
                 else
                 {
-                    Console.WriteLine("\n错误：" + result.Message);
+                    Console.WriteLine("\n识别错误：" + result.Message);
                 }
+
+                sw.Stop();
+                Console.WriteLine($"总共花费{sw.Elapsed.TotalSeconds}秒。");
             }
             catch (Exception ex)
             {

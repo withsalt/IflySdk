@@ -4,12 +4,13 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
-using WebSocketSharp;
 using IflySdk.Common;
 using IflySdk.Enum;
 using IflySdk.Interface;
 using IflySdk.Model.Common;
 using IflySdk.Model.IAT;
+using System.Net.WebSockets;
+using System.Threading;
 
 namespace IflySdk
 {
@@ -44,24 +45,18 @@ namespace IflySdk
         {
             try
             {
-                int frameSize = 122 * 8; //每一帧音频的大小,建议每 40ms 发送 122B
-                int intervel = 10;
+                int frameSize = 1280, intervel = 10;
                 FrameState status = FrameState.First;
-                byte[] buffer;
-
                 string host = BuildAuthUrl();
 
-                using (var ws = new WebSocketClient(host))
+                using (var ws = new ClientWebSocket())
                 {
-                    ws.OnMessage += OnMessageMethod;
-                    ws.OnOpen += OnOpenMethod;
-                    ws.OnClose += OnCloseMethod;
-                    ws.OnError += OnErrorMethod;
-                    ws.Connect();
-
+                    await ws.ConnectAsync(new Uri(host), CancellationToken.None);
+                    StartReceiving(ws);
+                    //开始发送数据
                     for (int i = 0; i < data.Length; i += frameSize)
                     {
-                        buffer = SubArray(data, i, frameSize);
+                        byte[] buffer = SubArray(data, i, frameSize);
                         if (buffer == null)
                         {
                             status = FrameState.Last;  //文件读完
@@ -69,51 +64,46 @@ namespace IflySdk
                         switch (status)
                         {
                             case FrameState.First:
-                                FirstFrameData firstFrame = new FirstFrameData();
-                                firstFrame.common = _common;
-                                firstFrame.business = _business;
-                                firstFrame.data = _data;
+                                FirstFrameData firstFrame = new FirstFrameData
+                                {
+                                    common = _common,
+                                    business = _business,
+                                    data = _data
+                                };
                                 firstFrame.data.status = FrameState.First;
                                 firstFrame.data.audio = System.Convert.ToBase64String(buffer);
-                                if (ws.IsAlive)
-                                {
-                                    ws.Send(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(firstFrame)));
-                                    status = FrameState.Continue;
-                                }
-                                else
-                                {
-                                    throw new Exception($"Disconnect the connection to the server during identification. Frame state:{status}");
-                                }
+                                await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(firstFrame)))
+                                    , WebSocketMessageType.Text
+                                    , true
+                                    , CancellationToken.None);
+                                status = FrameState.Continue;
                                 break;
                             case FrameState.Continue:  //中间帧
-                                ContinueFrameData continueFrame = new ContinueFrameData();
-                                continueFrame.data = _data;
+                                ContinueFrameData continueFrame = new ContinueFrameData
+                                {
+                                    data = _data
+                                };
                                 continueFrame.data.status = FrameState.Continue;
                                 continueFrame.data.audio = System.Convert.ToBase64String(buffer);
-                                if (ws.IsAlive)
-                                {
-                                    ws.Send(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(continueFrame)));
-                                }
-                                else
-                                {
-                                    throw new Exception($"Disconnect the connection to the server during identification. Frame state:{status}");
-                                }
+                                await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(continueFrame)))
+                                    , WebSocketMessageType.Text
+                                    , true
+                                    , CancellationToken.None);
                                 break;
                             case FrameState.Last:    // 最后一帧音频
-                                LastFrameData lastFrame = new LastFrameData();
-                                lastFrame.data = _data;
+                                LastFrameData lastFrame = new LastFrameData
+                                {
+                                    data = _data
+                                };
+                                lastFrame.data.status = FrameState.Last;
                                 lastFrame.data.audio = System.Convert.ToBase64String(buffer);
-                                if (ws.IsAlive)
-                                {
-                                    ws.Send(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(lastFrame)));
-                                }
-                                else
-                                {
-                                    throw new Exception($"Disconnect the connection to the server during identification. Frame state:{status}");
-                                }
+                                await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(lastFrame)))
+                                    , WebSocketMessageType.Text
+                                    , true
+                                    , CancellationToken.None);
                                 break;
                         }
-                        await Task.Delay(intervel); //模拟音频采样延时
+                        await Task.Delay(intervel);
                     }
                 }
                 return new ResultModel<string>()
@@ -132,71 +122,76 @@ namespace IflySdk
             }
         }
 
-        #region Action
-        private void OnErrorMethod(object sender, WebSocketSharp.ErrorEventArgs e)
+        #region private
+
+        private async void StartReceiving(ClientWebSocket client)
         {
-            OnError?.Invoke(this, new Model.Common.ErrorEventArgs()
+            while (true)
             {
-                Code = ResultCode.Error,
-                Message = e.Message,
-                Exception = e.Exception
-            });
-        }
-
-        private void OnCloseMethod(object sender, CloseEventArgs e)
-        {
-
-        }
-
-        private void OnOpenMethod(object sender, EventArgs e)
-        {
-
-        }
-
-        private void OnMessageMethod(object sender, MessageEventArgs e)
-        {
-            if (string.IsNullOrEmpty(e.Data))
-            {
-                return;
-            }
-            try
-            {
-                if (_resultStringBuilder != null)
+                try
                 {
-                    _resultStringBuilder.Clear();
-                }
-                IATResult result = JsonHelper.DeserializeJsonToObject<IATResult>(e.Data);
-                if (result.code != 0)
-                {
-                    throw new Exception($"Result error: {result.message}");
-                }
-                if (result.data == null
-                    || result.data.result == null
-                    || result.data.result.ws == null)
-                {
-                    return;
-                }
-                foreach (var item in result.data.result.ws)
-                {
-                    foreach (var child in item.cw)
+                    if (_resultStringBuilder != null)
                     {
-                        if (string.IsNullOrEmpty(child.w))
+                        _resultStringBuilder.Clear();
+                    }
+
+                    if (client.CloseStatus == WebSocketCloseStatus.EndpointUnavailable ||
+                        client.CloseStatus == WebSocketCloseStatus.InternalServerError ||
+                        client.CloseStatus == WebSocketCloseStatus.EndpointUnavailable)
+                    {
+                        return;
+                    }
+
+                    var array = new byte[4096];
+                    var receive = await client.ReceiveAsync(new ArraySegment<byte>(array), CancellationToken.None);
+                    if (receive.MessageType == WebSocketMessageType.Text)
+                    {
+                        if (receive.Count <= 0)
                         {
                             continue;
                         }
-                        _resultStringBuilder.Append(child.w);
+
+                        string msg = Encoding.UTF8.GetString(array, 0, receive.Count);
+                        IATResult result = JsonHelper.DeserializeJsonToObject<IATResult>(msg);
+                        if (result.code != 0)
+                        {
+                            throw new Exception($"Result error: {result.message}");
+                        }
+                        if (result.data == null
+                            || result.data.result == null
+                            || result.data.result.ws == null)
+                        {
+                            return;
+                        }
+                        foreach (var item in result.data.result.ws)
+                        {
+                            foreach (var child in item.cw)
+                            {
+                                if (string.IsNullOrEmpty(child.w))
+                                {
+                                    continue;
+                                }
+                                _resultStringBuilder.Append(child.w);
+                            }
+                        }
+                        OnMessage?.Invoke(this, _resultStringBuilder.ToString());
                     }
                 }
-                OnMessage?.Invoke(this, _resultStringBuilder.ToString());
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
+                catch (WebSocketException)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    OnError?.Invoke(this, new ErrorEventArgs()
+                    {
+                        Code = ResultCode.Error,
+                        Message = ex.Message,
+                        Exception = ex,
+                    });
+                }
             }
         }
-        #endregion
-
-        #region private
 
 
         /// <summary>

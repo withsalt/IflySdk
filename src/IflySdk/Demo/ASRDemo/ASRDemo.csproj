@@ -10,7 +10,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="test.pcm">
+    <None Update="02.pcm">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="01.pcm">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="03.pcm">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

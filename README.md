@@ -4,11 +4,8 @@
 ### 注意
 其中的AppID和ApiKey为测试APP，只有500次调用量，用完即止。请更换为自己的APP。
 
-### 存在问题
-1. 语音识别速度偏慢
-
 ### 参考
-- [websocket-sharp](https://github.com/sta/websocket-sharp "websocket-sharp")
+- [语音听写（流式版）WebAPI C#Demo](http://bbs.xfyun.cn/forum.php?mod=viewthread&tid=42499&highlight=C%23)
 - 官方TTS Demo
 
 ### 使用方法
