@@ -1,11 +1,15 @@
 # IflySdk
 科大讯飞SDK，目前支持流式语音识别、语音合成
 
-#### 注意
+### 注意
 其中的AppID和ApiKey为测试APP，只有500次调用量，用完即止。请更换为自己的APP。
 
-#### 存在问题
-1、语音识别速度偏慢
+### 存在问题
+1. 语音识别速度偏慢
+
+### 参考
+- [websocket-sharp](https://github.com/sta/websocket-sharp "websocket-sharp")
+- 官方TTS Demo
 
 ### 使用方法
 #### ASR
