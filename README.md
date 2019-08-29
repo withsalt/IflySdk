@@ -63,8 +63,8 @@ static async void TTS()
         TTSApi tts = new ApiBuilder()
             .WithAppSettings(new AppSettings()
             {
-                        //不同类型接口APIKey不一样，比如ASR和TTS的WebApi接口APIKey是不一样的
-                        ApiKey = "a8fae54d39911418e8501e97e783878f",
+                //不同类型接口APIKey不一样，比如ASR和TTS的WebApi接口APIKey是不一样的
+                ApiKey = "a8fae54d39911418e8501e97e783878f",
                 AppID = "5c56f257"
             })
             .WithSavePath("test.wav")
