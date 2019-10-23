@@ -46,7 +46,7 @@ namespace TTSDemo
                 if (result.Code == ResultCode.Success)
                 {
                     //注意：转换后的结果为16K的单声道原始音频，可以使用Audacity来测速播放。
-                    string path = Environment.CurrentDirectory + "\\" + "test.pcm";
+                    string path = Path.Combine(Environment.CurrentDirectory, "test.pcm");
                     using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write))
                     {
                         fs.Write(result.Data, 0, result.Data.Length);
