@@ -10,21 +10,21 @@ namespace IflySdk.Model.IAT
         /// <summary>
         /// 
         /// </summary>
-        public int code { get; set; }
+        public int Code { get; set; }
 
         /// <summary>
         /// 
         /// </summary>
-        public string message { get; set; }
+        public string Message { get; set; }
 
         /// <summary>
         /// 
         /// </summary>
-        public string sid { get; set; }
+        public string Sid { get; set; }
 
         /// <summary>
         /// 
         /// </summary>
-        public Data data { get; set; }
+        public Data Data { get; set; }
     }
 }

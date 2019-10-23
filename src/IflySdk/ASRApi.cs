@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web;
 using IflySdk.Common;
 using IflySdk.Enum;
 using IflySdk.Interface;
@@ -11,11 +8,14 @@ using IflySdk.Model.Common;
 using IflySdk.Model.IAT;
 using System.Net.WebSockets;
 using System.Threading;
+using IflySdk.Common.Utils;
 
 namespace IflySdk
 {
     public class ASRApi : IApi
     {
+        private bool _isEnd = false;
+
         readonly StringBuilder _resultStringBuilder = new StringBuilder();
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace IflySdk
             {
                 int frameSize = 1280, intervel = 10;
                 FrameState status = FrameState.First;
-                string host = BuildAuthUrl();
+                string host = ApiAuthorization.BuildAuthUrl(_settings);
 
                 using (var ws = new ClientWebSocket())
                 {
@@ -57,7 +57,7 @@ namespace IflySdk
                     for (int i = 0; i < data.Length; i += frameSize)
                     {
                         byte[] buffer = SubArray(data, i, frameSize);
-                        if (buffer == null)
+                        if (buffer == null || data.Length - i < frameSize)
                         {
                             status = FrameState.Last;  //文件读完
                         }
@@ -105,6 +105,12 @@ namespace IflySdk
                         }
                         await Task.Delay(intervel);
                     }
+
+                    while (!_isEnd)
+                    {
+                        await Task.Delay(10);
+                    }
+                    await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "NormalClosure", CancellationToken.None);
                 }
                 return new ResultModel<string>()
                 {
@@ -139,6 +145,7 @@ namespace IflySdk
                         client.CloseStatus == WebSocketCloseStatus.InternalServerError ||
                         client.CloseStatus == WebSocketCloseStatus.EndpointUnavailable)
                     {
+                        _isEnd = true;
                         return;
                     }
 
@@ -153,17 +160,18 @@ namespace IflySdk
 
                         string msg = Encoding.UTF8.GetString(array, 0, receive.Count);
                         IATResult result = JsonHelper.DeserializeJsonToObject<IATResult>(msg);
-                        if (result.code != 0)
+                        if (result.Code != 0)
                         {
-                            throw new Exception($"Result error: {result.message}");
+                            throw new Exception($"Result error: {result.Message}");
                         }
-                        if (result.data == null
-                            || result.data.result == null
-                            || result.data.result.ws == null)
+                        if (result.Data == null
+                            || result.Data.result == null
+                            || result.Data.result.ws == null)
                         {
+                            _isEnd = true;
                             return;
                         }
-                        foreach (var item in result.data.result.ws)
+                        foreach (var item in result.Data.result.ws)
                         {
                             foreach (var child in item.cw)
                             {
@@ -175,10 +183,16 @@ namespace IflySdk
                             }
                         }
                         OnMessage?.Invoke(this, _resultStringBuilder.ToString());
+                        //最后一帧，结束
+                        if (result.Data.status == 2)
+                        {
+                            _isEnd = true;
+                        }
                     }
                 }
                 catch (WebSocketException)
                 {
+                    _isEnd = true;
                     return;
                 }
                 catch (Exception ex)
@@ -189,6 +203,7 @@ namespace IflySdk
                         Message = ex.Message,
                         Exception = ex,
                     });
+                    _isEnd = true;
                 }
             }
         }
@@ -219,49 +234,6 @@ namespace IflySdk
                 Array.Copy(source, startIndex, Destination, 0, source.Length - startIndex);
             }
             return Destination;
-        }
-
-        /// <summary>
-        /// 加密
-        /// </summary>
-        /// <param name="apiSecretIsKey"></param>
-        /// <param name="buider"></param>
-        /// <returns></returns>
-        private string HMACSha256(string apiSecretIsKey, string buider)
-        {
-            byte[] bytes = Encoding.UTF8.GetBytes(apiSecretIsKey);
-
-            using (HMACSHA256 hMACSHA256 = new HMACSHA256(bytes))
-            {
-                byte[] date = Encoding.UTF8.GetBytes(buider);
-                date = hMACSHA256.ComputeHash(date);
-                hMACSHA256.Clear();
-                return System.Convert.ToBase64String(date);
-            }
-        }
-
-        //生成URL
-        private string BuildAuthUrl()
-        {
-            string date = DateTime.UtcNow.ToString("r");
-            Uri uri = new Uri(_settings.ASRUrl);
-            //build signature string
-            string signatureOrigin = $"host: {uri.Host}\ndate: {date}\nGET {uri.LocalPath} HTTP/1.1";
-            string signature = HMACSha256(_settings.ApiSecret, signatureOrigin);
-            string authorization = $"api_key=\"{_settings.ApiKey}\", algorithm=\"hmac-sha256\", headers=\"host date request-line\", signature=\"{signature}\"";
-            //Build url
-            StringBuilder urlBuilder = new StringBuilder();
-            urlBuilder.Append(_settings.ASRUrl);
-            urlBuilder.Append("?");
-            urlBuilder.Append("authorization=");
-            urlBuilder.Append(System.Convert.ToBase64String(Encoding.UTF8.GetBytes(authorization)));
-            urlBuilder.Append("&");
-            urlBuilder.Append("date=");
-            urlBuilder.Append(HttpUtility.UrlEncode(date).Replace("+", "%20"));  //默认会将空格编码为+号
-            urlBuilder.Append("&");
-            urlBuilder.Append("host=");
-            urlBuilder.Append(uri.Host);
-            return urlBuilder.ToString();
         }
 
         #endregion

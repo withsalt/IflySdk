@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace IflySdk.Common
+namespace IflySdk.Common.Utils
 {
     public class JsonHelper
     {

@@ -7,7 +7,7 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
-namespace IflySdk.Common
+namespace IflySdk.Common.Utils
 {
     public class HttpHelper
     {

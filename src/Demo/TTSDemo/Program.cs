@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 
 using IflySdk;
@@ -27,22 +28,31 @@ namespace TTSDemo
                 TTSApi tts = new ApiBuilder()
                     .WithAppSettings(new AppSettings()
                     {
-                        //不同类型接口APIKey不一样，比如ASR和TTS的WebApi接口APIKey是不一样的
-                        ApiKey = "a8fae54d39911418e8501e97e783878f",   
+                        ApiKey = "7b845bf729c3eeb97be6de4d29e0b446",
+                        ApiSecret = "50c591a9cde3b1ce14d201db9d793b01",
                         AppID = "5c56f257"
                     })
-                    .WithSavePath("test.wav")
+                    .UseError((sender, e) =>
+                    {
+                        Console.WriteLine("错误：" + e.Message);
+                    })
+                    .UseMessage((sender, e) =>
+                    {
+                        Console.WriteLine("结果：" + e);
+                    })
+                    //.WithSavePath("test.wav")
                     .BuildTTS();
 
-                ResultModel<MemoryStream> result = await tts.Convert(str);
+                ResultModel<string> result = await tts.Convert(str);
                 if(result.Code == ResultCode.Success)
                 {
-                    File.WriteAllBytes("test.wav", await StreamToByte(result.Data));
-                    string path = Environment.CurrentDirectory + "\\" + "test.wav";
-                    if (File.Exists(path))
-                    {
-                        Console.WriteLine("保存成功！");
-                    }
+                    //File.WriteAllBytes("test.wav", await StreamToByte(result.Data));
+                    //string path = Environment.CurrentDirectory + "\\" + "test.wav";
+                    //if (File.Exists(path))
+                    //{
+                    //    Console.WriteLine("保存成功！");
+                    //}
+                    Console.WriteLine("识别结束！");
                 }
                 else
                 {

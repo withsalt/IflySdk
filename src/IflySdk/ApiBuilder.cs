@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using IflySdk.Model.Common;
 using IflySdk.Model.IAT;
+using IflySdk.Model.TTS;
 
 namespace IflySdk
 {
@@ -26,12 +27,13 @@ namespace IflySdk
 
         #region TTS
 
+        private string _ent = "intp65";
         private string _aue = "raw";
         private string _auf = "audio/L16;rate=16000";
-        private string _voiceName = "xiaoyan";
-        private string _speed = "50";
-        private string _volume = "50";
-        private string _engineType = "intp65";
+        private string _vcn = "xiaoyan";
+        private int _speed = 50;
+        private int _volume = 50;
+        private string _tte = "UTF8";
         private string _savePath = "result.wav";
 
         #endregion
@@ -204,17 +206,17 @@ namespace IflySdk
             {
                 throw new Exception("Language set can not null.");
             }
-            CommonParams common = new CommonParams()
+            Model.IAT.CommonParams common = new Model.IAT.CommonParams()
             {
                 app_id = _settings.AppID,
                 uid = _uid,
             };
-            DataParams data = new DataParams()
+            Model.IAT.DataParams data = new Model.IAT.DataParams()
             {
                 format = _format,
                 encoding = _encoding
             };
-            BusinessParams business = new BusinessParams()
+            Model.IAT.BusinessParams business = new Model.IAT.BusinessParams()
             {
                 language = _language,
                 domain = _domain,
@@ -231,9 +233,32 @@ namespace IflySdk
         #region TTS
 
         /// <summary>
+        /// 引擎类型
+        /// aisound（普通效果）
+        /// intp65（中文）
+        /// intp65_en（英文）
+        /// xtts（优化效果）
+        /// 默认为intp65
+        /// </summary>
+        /// <param name="ent"></param>
+        /// <returns></returns>
+        public ApiBuilder WithEnt(string ent)
+        {
+            if (!string.IsNullOrEmpty(ent))
+            {
+                _ent = ent;
+            }
+            else
+            {
+                _ent = "raw";
+            }
+            return this;
+        }
+
+        /// <summary>
         /// 音频编码
-        /// raw（未压缩的wav格式）
-        /// lame（mp3格式）
+        /// speex：压缩格式
+        /// speex-wb;7：压缩格式，压缩等级1 ~10，默认为7
         /// </summary>
         /// <returns></returns>
         public ApiBuilder WithAue(string aue)
@@ -275,15 +300,15 @@ namespace IflySdk
         /// </summary>
         /// <param name="voiceName"></param>
         /// <returns></returns>
-        public ApiBuilder WithVoiceName(string voiceName)
+        public ApiBuilder WithVcn(string vcn)
         {
-            if (!string.IsNullOrEmpty(voiceName))
+            if (!string.IsNullOrEmpty(vcn))
             {
-                _voiceName = voiceName;
+                _vcn = vcn;
             }
             else
             {
-                _voiceName = "xiaoyan";
+                _vcn = "xiaoyan";
             }
             return this;
         }
@@ -297,11 +322,11 @@ namespace IflySdk
         {
             if (speed < 0 || speed > 100)
             {
-                _speed = "50";
+                _speed = 50;
             }
             else
             {
-                _speed = speed.ToString();
+                _speed = speed;
             }
             return this;
         }
@@ -315,33 +340,30 @@ namespace IflySdk
         {
             if (volume < 0 || volume > 100)
             {
-                _volume = "50";
+                _volume = 50;
             }
             else
             {
-                _volume = volume.ToString();
+                _volume = volume;
             }
             return this;
         }
 
         /// <summary>
-        /// 引擎类型
-        /// aisound（普通效果）
-        /// intp65（中文）
-        /// intp65_en（英文）
-        /// mtts（小语种，需配合小语种发音人使用）
-        /// x（优化效果）
-        /// 默认为intp65
+        /// 文本编码格式
+        /// GB2312、GBK、BIG5、UNICODE、GB18030、UTF8
         /// </summary>
-        public ApiBuilder WithEngineType(string engineType)
+        /// <param name="tte"></param>
+        /// <returns></returns>
+        public ApiBuilder WithTte(string tte)
         {
-            if (!string.IsNullOrEmpty(engineType))
+            if (!string.IsNullOrEmpty(tte))
             {
-                _engineType = engineType;
+                _tte = tte;
             }
             else
             {
-                _engineType = "intp65";
+                _tte = "UTF8";
             }
             return this;
         }
@@ -366,23 +388,35 @@ namespace IflySdk
 
         public TTSApi BuildTTS()
         {
+            if (_settings == null)
+            {
+                throw new Exception("App setting can not null.");
+            }
+            Model.TTS.CommonParams common = new Model.TTS.CommonParams()
+            {
+                app_id = _settings.AppID,
+                uid = _uid,
+            };
             Model.TTS.DataParams data = new Model.TTS.DataParams()
             {
+                text = "",
+            };
+            Model.TTS.BusinessParams business = new Model.TTS.BusinessParams()
+            {
+                ent = _ent,
                 aue = _aue,
                 auf = _auf,
-                voice_name = _voiceName,
+                vcn = _vcn,
                 speed = _speed,
                 volume = _volume,
-                engine_type = _engineType,
-                save_path = _savePath
+                tte = _tte
             };
-            TTSApi api = new TTSApi(_settings, data);
+            TTSApi api = new TTSApi(_settings, common, data, business);
             api.OnError += _onError;
+            api.OnMessage += _onMessage;
             return api;
         }
 
         #endregion
-
-
     }
 }

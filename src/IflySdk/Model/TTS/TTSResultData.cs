@@ -4,26 +4,21 @@ using System.Text;
 
 namespace IflySdk.Model.TTS
 {
-    class TTSResult
+    public class TTSResultData
     {
         /// <summary>
         /// 
         /// </summary>
-        public int Code { get; set; }
+        public string Audio { get; set; }
 
         /// <summary>
         /// 
         /// </summary>
-        public string Message { get; set; }
+        public string Ced { get; set; }
 
         /// <summary>
         /// 
         /// </summary>
-        public string Sid { get; set; }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public TTSResultData Data { get; set; }
+        public int Status { get; set; }
     }
 }

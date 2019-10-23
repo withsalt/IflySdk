@@ -29,6 +29,6 @@ namespace IflySdk.Model.Common
         /// <summary>
         /// TTS接口地址
         /// </summary>
-        public string TTSUrl { get; set; } = "https://api.xfyun.cn/v1/service/v1/tts";
+        public string TTSUrl { get; set; } = "wss://tts-api.xfyun.cn/v2/tts";
     }
 }
