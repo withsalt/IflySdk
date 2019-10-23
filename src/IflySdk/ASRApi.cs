@@ -9,6 +9,10 @@ using IflySdk.Model.IAT;
 using System.Net.WebSockets;
 using System.Threading;
 using IflySdk.Common.Utils;
+using System.IO;
+using System.Collections.Generic;
+using IflySdk.Model.IAT.ResultNode;
+using System.Linq;
 
 namespace IflySdk
 {
@@ -16,7 +20,7 @@ namespace IflySdk
     {
         private bool _isEnd = false;
 
-        readonly StringBuilder _resultBuffer = new StringBuilder();
+        readonly List<ResultWPGSInfo> _resultBuffer = new List<ResultWPGSInfo>();
 
         /// <summary>
         /// 错误
@@ -112,10 +116,17 @@ namespace IflySdk
                     }
                     await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "NormalClosure", CancellationToken.None);
                 }
+
+                StringBuilder result = new StringBuilder();
+                foreach (var item in _resultBuffer)
+                {
+                    result.Append(item.data);
+                }
+
                 return new ResultModel<string>()
                 {
                     Code = ResultCode.Success,
-                    Data = _resultBuffer == null ? "" : _resultBuffer.ToString(),
+                    Data = result.ToString(),
                 };
             }
             catch (Exception ex)
@@ -170,6 +181,8 @@ namespace IflySdk
                             _isEnd = true;
                             return;
                         }
+                        //分析数据
+                        StringBuilder itemStringBuilder = new StringBuilder();
                         foreach (var item in result.Data.result.ws)
                         {
                             foreach (var child in item.cw)
@@ -178,10 +191,51 @@ namespace IflySdk
                                 {
                                     continue;
                                 }
-                                _resultBuffer.Append(child.w);
+                                itemStringBuilder.Append(child.w);
                             }
                         }
-                        OnMessage?.Invoke(this, _resultBuffer.ToString());
+                        if (result.Data.result.pgs == "apd")
+                        {
+                            _resultBuffer.Add(new ResultWPGSInfo()
+                            {
+                                sn = result.Data.result.sn,
+                                data = itemStringBuilder.ToString()
+                            });
+                        }
+                        else if (result.Data.result.pgs == "rpl")
+                        {
+                            if (result.Data.result.rg == null || result.Data.result.rg.Count != 2)
+                            {
+                                continue;
+                            }
+                            int first = result.Data.result.rg[0];
+                            int end = result.Data.result.rg[1];
+                            try
+                            {
+                                ResultWPGSInfo item = _resultBuffer.Where(p => p.sn >= first && p.sn <= end).SingleOrDefault();
+                                if (item == null)
+                                {
+                                    continue;
+                                }
+                                else
+                                {
+                                    item.sn = result.Data.result.sn;
+                                    item.data = itemStringBuilder.ToString();
+                                }
+                            }
+                            catch
+                            {
+                                continue;
+                            }
+                        }
+
+                        StringBuilder totalStringBuilder = new StringBuilder();
+                        foreach (var item in _resultBuffer)
+                        {
+                            totalStringBuilder.Append(item.data);
+                        }
+
+                        OnMessage?.Invoke(this, totalStringBuilder.ToString());
                         //最后一帧，结束
                         if (result.Data.status == 2)
                         {
@@ -196,7 +250,7 @@ namespace IflySdk
                 }
                 catch (Exception ex)
                 {
-                    OnError?.Invoke(this, new ErrorEventArgs()
+                    OnError?.Invoke(this, new Model.Common.ErrorEventArgs()
                     {
                         Code = ResultCode.Error,
                         Message = ex.Message,

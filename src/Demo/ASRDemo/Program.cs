@@ -19,7 +19,7 @@ namespace ASRDemo
 
         static async void ASR()
         {
-            string path = @"03.pcm";  //测试文件路径,自己修改
+            string path = @"02.pcm";  //测试文件路径,自己修改
             byte[] data = File.ReadAllBytes(path);
 
             try
@@ -56,7 +56,7 @@ namespace ASRDemo
                 }
 
                 sw.Stop();
-                Console.WriteLine($"总共花费{sw.Elapsed.TotalSeconds}秒。");
+                Console.WriteLine($"总共花费{Math.Round(sw.Elapsed.TotalSeconds, 2)}秒。");
             }
             catch (Exception ex)
             {
