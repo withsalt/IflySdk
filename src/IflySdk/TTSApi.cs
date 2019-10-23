@@ -14,7 +14,7 @@ namespace IflySdk
 {
     public class TTSApi
     {
-        private bool isEndConvert = false;
+        private bool _isEnd = false;
 
         /// <summary>
         /// 错误
@@ -73,7 +73,7 @@ namespace IflySdk
                     //string send = JsonHelper.SerializeObject(frame);
                     await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(frame))), WebSocketMessageType.Text, true, CancellationToken.None);
 
-                    while (!isEndConvert)
+                    while (!_isEnd)
                     {
                         await Task.Delay(10);
                     }
@@ -105,11 +105,11 @@ namespace IflySdk
                         client.CloseStatus == WebSocketCloseStatus.InternalServerError ||
                         client.CloseStatus == WebSocketCloseStatus.EndpointUnavailable)
                     {
-                        isEndConvert = true;
+                        _isEnd = true;
                         return;
                     }
 
-                    var array = new byte[4096];
+                    var array = new byte[409600];
                     var receive = await client.ReceiveAsync(new ArraySegment<byte>(array), CancellationToken.None);
                     if (receive.MessageType == WebSocketMessageType.Text)
                     {
@@ -119,7 +119,7 @@ namespace IflySdk
                         }
 
                         string msg = Encoding.UTF8.GetString(array, 0, receive.Count);
-                        Console.WriteLine(msg);
+                        Console.WriteLine(msg.Length);
                         TTSResult result = JsonHelper.DeserializeJsonToObject<TTSResult>(msg);
                         if (result.Code != 0)
                         {
@@ -131,11 +131,16 @@ namespace IflySdk
                             continue;
                         }
                         OnMessage?.Invoke(this, result.Data.Audio);
+
+                        if(result.Data.Status == 2)
+                        {
+                            _isEnd = true;
+                        }
                     }
                 }
                 catch (WebSocketException)
                 {
-                    isEndConvert = true;
+                    _isEnd = true;
                     return;
                 }
                 catch (Exception ex)
@@ -146,7 +151,7 @@ namespace IflySdk
                         Message = ex.Message,
                         Exception = ex,
                     });
-                    isEndConvert = true;
+                    _isEnd = true;
                 }
             }
         }

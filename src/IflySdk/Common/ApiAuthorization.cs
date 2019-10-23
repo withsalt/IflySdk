@@ -33,14 +33,25 @@ namespace IflySdk.Common
         public static string BuildAuthUrl(AppSettings _settings)
         {
             string date = DateTime.UtcNow.ToString("r");
-            Uri uri = new Uri(_settings.ASRUrl);
+            Uri uri;
+            switch (_settings.ApiType)
+            {
+                case Enum.ApiType.ASR:
+                    uri = new Uri(_settings.ASRUrl);
+                    break;
+                case Enum.ApiType.TTS:
+                    uri = new Uri(_settings.TTSUrl);
+                    break;
+                default:
+                    throw new Exception("Unknow Api type.");
+            }
             //build signature string
             string signatureOrigin = $"host: {uri.Host}\ndate: {date}\nGET {uri.LocalPath} HTTP/1.1";
             string signature = HMACSha256(_settings.ApiSecret, signatureOrigin);
             string authorization = $"api_key=\"{_settings.ApiKey}\", algorithm=\"hmac-sha256\", headers=\"host date request-line\", signature=\"{signature}\"";
             //Build url
             StringBuilder urlBuilder = new StringBuilder();
-            urlBuilder.Append(_settings.ASRUrl);
+            urlBuilder.Append(uri.ToString());
             urlBuilder.Append("?");
             urlBuilder.Append("authorization=");
             urlBuilder.Append(Base64.Base64Encode(authorization));

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IflySdk.Enum;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -30,5 +31,7 @@ namespace IflySdk.Model.Common
         /// TTS接口地址
         /// </summary>
         public string TTSUrl { get; set; } = "wss://tts-api.xfyun.cn/v2/tts";
+
+        public ApiType ApiType { get; set; }
     }
 }

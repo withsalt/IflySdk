@@ -222,6 +222,8 @@ namespace IflySdk
                 domain = _domain,
                 accent = _accent,
             };
+            _settings.ApiType = Enum.ApiType.ASR;
+
             ASRApi api = new ASRApi(_settings, common, data, business);
             api.OnError += _onError;
             api.OnMessage += _onMessage;
@@ -411,6 +413,8 @@ namespace IflySdk
                 volume = _volume,
                 tte = _tte
             };
+            _settings.ApiType = Enum.ApiType.TTS;
+
             TTSApi api = new TTSApi(_settings, common, data, business);
             api.OnError += _onError;
             api.OnMessage += _onMessage;
