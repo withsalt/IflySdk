@@ -10,10 +10,12 @@
 
 ### 使用方法
 #### ASR
+注意：请开启动态修正（仅中文普通话支持），否则会运行出错！  
+
 ```csharp
 static async void ASR()
 {
-    string path = @"test.pcm";  //测试文件路径,自己修改
+    string path = @"02.pcm";  //测试文件路径,自己修改
     byte[] data = File.ReadAllBytes(path);
 
     try
@@ -35,6 +37,10 @@ static async void ASR()
             })
             .BuildASR();
 
+        //计算识别时间
+        Stopwatch sw = new Stopwatch();
+        sw.Start();
+
         ResultModel<string> result = await iat.Convert(data);
         if (result.Code == ResultCode.Success)
         {
@@ -42,8 +48,11 @@ static async void ASR()
         }
         else
         {
-            Console.WriteLine("\n错误：" + result.Message);
+            Console.WriteLine("\n识别错误：" + result.Message);
         }
+
+        sw.Stop();
+        Console.WriteLine($"总共花费{Math.Round(sw.Elapsed.TotalSeconds, 2)}秒。");
     }
     catch (Exception ex)
     {
