@@ -16,7 +16,7 @@ namespace IflySdk
     {
         private bool _isEnd = false;
 
-        readonly StringBuilder _resultStringBuilder = new StringBuilder();
+        readonly StringBuilder _resultBuffer = new StringBuilder();
 
         /// <summary>
         /// 错误
@@ -115,7 +115,7 @@ namespace IflySdk
                 return new ResultModel<string>()
                 {
                     Code = ResultCode.Success,
-                    Data = _resultStringBuilder == null ? "" : _resultStringBuilder.ToString(),
+                    Data = _resultBuffer == null ? "" : _resultBuffer.ToString(),
                 };
             }
             catch (Exception ex)
@@ -132,15 +132,14 @@ namespace IflySdk
 
         private async void StartReceiving(ClientWebSocket client)
         {
+            if (_resultBuffer != null)
+            {
+                _resultBuffer.Clear();
+            }
             while (true)
             {
                 try
                 {
-                    if (_resultStringBuilder != null)
-                    {
-                        _resultStringBuilder.Clear();
-                    }
-
                     if (client.CloseStatus == WebSocketCloseStatus.EndpointUnavailable ||
                         client.CloseStatus == WebSocketCloseStatus.InternalServerError ||
                         client.CloseStatus == WebSocketCloseStatus.EndpointUnavailable)
@@ -179,10 +178,10 @@ namespace IflySdk
                                 {
                                     continue;
                                 }
-                                _resultStringBuilder.Append(child.w);
+                                _resultBuffer.Append(child.w);
                             }
                         }
-                        OnMessage?.Invoke(this, _resultStringBuilder.ToString());
+                        OnMessage?.Invoke(this, _resultBuffer.ToString());
                         //最后一帧，结束
                         if (result.Data.status == 2)
                         {

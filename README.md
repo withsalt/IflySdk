@@ -1,5 +1,5 @@
 # IflySdk
-科大讯飞SDK，目前支持流式语音识别、语音合成
+科大讯飞SDK，目前支持流式语音识别、语音合成。
 
 ### 注意
 其中的AppID和ApiKey为测试APP，只有500次调用量，用完即止。请更换为自己的APP。
@@ -53,7 +53,7 @@ static async void ASR()
 ```
 
 #### TTS
-目前程序中TTS任然存在问题，一直报参数错误。但是核对参数后并没有发现问题，只有慢慢处理了。
+TTS返回的实时结果为Base64编码的音频数据，需要自行解码。返回的最终结果为byte[]数组，可以直接保存为pcm音频。保存的音频不能直接打开播放，需要播放测试可以使用工具Audacity。
 
 ```csharp
 static async void TTS()
@@ -64,38 +64,43 @@ static async void TTS()
         TTSApi tts = new ApiBuilder()
             .WithAppSettings(new AppSettings()
             {
-                //不同类型接口APIKey不一样，比如ASR和TTS的WebApi接口APIKey是不一样的
-                ApiKey = "a8fae54d39911418e8501e97e783878f",
+                ApiKey = "7b845bf729c3eeb97be6de4d29e0b446",
+                ApiSecret = "50c591a9cde3b1ce14d201db9d793b01",
                 AppID = "5c56f257"
             })
-            .WithSavePath("test.wav")
+            .UseError((sender, e) =>
+            {
+                Console.WriteLine(e.Message);
+            })
+            .UseMessage((sender, e) =>
+            {
+                Console.WriteLine("结果：" + e.Substring(0, 20) + "...");  //Base64的结果。没显示完
+            })
             .BuildTTS();
 
-        ResultModel<MemoryStream> result = await tts.Convert(str);
+        ResultModel<byte[]> result = await tts.Convert(str);
         if (result.Code == ResultCode.Success)
         {
-            File.WriteAllBytes("test.wav", await StreamToByte(result.Data));
-            string path = Environment.CurrentDirectory + "\\" + "test.wav";
+            //注意：转换后的结果为16K的单声道原始音频，可以使用Audacity来测速播放。
+            string path = Environment.CurrentDirectory + "\\" + "test.pcm";
+            using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write))
+            {
+                fs.Write(result.Data, 0, result.Data.Length);
+                fs.Flush();
+            }
             if (File.Exists(path))
             {
                 Console.WriteLine("保存成功！");
+            }
+            else
+            {
+                Console.WriteLine("保存失败！");
             }
         }
         else
         {
             Console.WriteLine("\n错误：" + result.Message);
         }
-
-        //或者直接采用ConvertAndSave方法
-        //ResultModel<string> result = await iat.ConvertAndSave(str);
-        //if (result.Code == ResultCode.Success)
-        //{
-        //    Console.WriteLine("\n保存成功：" + result.Data);
-        //}
-        //else
-        //{
-        //    Console.WriteLine("\n错误：" + result.Message);
-        //}
     }
     catch (Exception ex)
     {

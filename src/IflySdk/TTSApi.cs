@@ -16,6 +16,8 @@ namespace IflySdk
     {
         private bool _isEnd = false;
 
+        List<byte> _resultBuffer = new List<byte>();
+
         /// <summary>
         /// 错误
         /// </summary>
@@ -39,7 +41,7 @@ namespace IflySdk
             _business = business;
         }
 
-        public async Task<ResultModel<string>> Convert(string data)
+        public async Task<ResultModel<byte[]>> Convert(string data)
         {
             try
             {
@@ -79,15 +81,15 @@ namespace IflySdk
                     }
                     await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "NormalClosure", CancellationToken.None);
                 }
-                return new ResultModel<string>()
+                return new ResultModel<byte[]>()
                 {
                     Code = ResultCode.Success,
-                    //Data = _resultStringBuilder == null ? "" : _resultStringBuilder.ToString(),
+                    Data = _resultBuffer == null ? null : _resultBuffer.ToArray(),
                 };
             }
             catch (Exception ex)
             {
-                return new ResultModel<string>()
+                return new ResultModel<byte[]>()
                 {
                     Code = ResultCode.Error,
                     Message = ex.Message,
@@ -97,6 +99,10 @@ namespace IflySdk
 
         private async void StartReceiving(ClientWebSocket client)
         {
+            if (_resultBuffer != null)
+            {
+                _resultBuffer.Clear();
+            }
             while (true)
             {
                 try
@@ -108,8 +114,8 @@ namespace IflySdk
                         _isEnd = true;
                         return;
                     }
-
-                    var array = new byte[409600];
+                    //唔，足够大的缓冲区
+                    var array = new byte[100000];
                     var receive = await client.ReceiveAsync(new ArraySegment<byte>(array), CancellationToken.None);
                     if (receive.MessageType == WebSocketMessageType.Text)
                     {
@@ -119,7 +125,6 @@ namespace IflySdk
                         }
 
                         string msg = Encoding.UTF8.GetString(array, 0, receive.Count);
-                        Console.WriteLine(msg.Length);
                         TTSResult result = JsonHelper.DeserializeJsonToObject<TTSResult>(msg);
                         if (result.Code != 0)
                         {
@@ -130,9 +135,12 @@ namespace IflySdk
                             //空帧，不用管
                             continue;
                         }
+                        byte[] audiaBuffer = System.Convert.FromBase64String(result.Data.Audio);
+                        _resultBuffer.AddRange(audiaBuffer);
+
                         OnMessage?.Invoke(this, result.Data.Audio);
 
-                        if(result.Data.Status == 2)
+                        if (result.Data.Status == 2)
                         {
                             _isEnd = true;
                         }
