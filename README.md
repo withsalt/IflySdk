@@ -53,7 +53,7 @@ static async void ASR()
 ```
 
 #### TTS
-使用TTS之前先将目前IP添加到IP白名单。
+目前程序中TTS任然存在问题，一直报参数错误。但是核对参数后并没有发现问题，只有慢慢处理了。
 
 ```csharp
 static async void TTS()
