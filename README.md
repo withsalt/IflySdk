@@ -63,7 +63,7 @@ static async void ASR()
 ```
 
 #### TTS
-TTS返回的实时结果为Base64编码的音频数据，需要自行解码。返回的最终结果为byte[]数组，可以直接保存为pcm音频。保存的音频不能直接打开播放，需要播放测试可以使用工具Audacity。
+TTS返回的实时结果为Base64编码的音频数据，需要自行解码。返回的最终结果为byte[]数组，可以直接保存为pcm音频。保存的音频不能直接打开播放，需要播放测试可以使用工具Audacity或FFmpeg。
 
 ```csharp
 static async void TTS()
@@ -117,4 +117,8 @@ static async void TTS()
         Console.WriteLine(ex.Message);
     }
 }
+```
+用FFmpeg播放合成的音频
+```shell
+ffplay -ar 16000 -channels 1 -f s16le -i test.pcm
 ```
