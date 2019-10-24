@@ -13,11 +13,20 @@ namespace ASRDemo
     {
         static void Main()
         {
-            ASRAppend();
+            ASRStream();
+            //ASR();
+
             Console.ReadKey(false);
         }
 
-        static async void ASRAppend()
+        /// <summary>
+        /// 支持分片输入
+        /// 可以一边输入音频，一边进行语音识别。
+        /// 整个会话时长最多持续60s，或者超过10s未发送数据服务器会自动断开连接。但是识别过程不会停止，会自动开启一个新的会话进行识别。
+        /// 
+        /// 分片大小建议至少在10000以上。小于6000就可能影响到识别速率（也取决于输入频率）。
+        /// </summary>
+        static async void ASRStream()
         {
             string path = @"02.pcm";  //测试文件路径,自己修改
             int frameSize = 10000;
@@ -49,20 +58,21 @@ namespace ASRDemo
                 byte[] buffer = null;
                 for (int i = 0; i < data.Length; i += frameSize)
                 {
-                    await Task.Delay(150);  //模拟说话暂停
+                    //模拟说话暂停
+                    await Task.Delay(150); 
                     buffer = SubArray(data, i, frameSize);
                     if (buffer == null || data.Length - i < frameSize)
                     {
-                        //最后一个分片
-                        iat.ConvertAppend(buffer, true);
+                        //最后一个分片。
+                        //一定要输入最后一个分片，不然只有等到服务器断开连接后才会退出本次识别。
+                        iat.Convert(buffer, true);
                     }
                     else
                     {
-                        iat.ConvertAppend(buffer);
+                        iat.Convert(buffer);
                     }
                 }
-
-                Console.WriteLine("发送结束...等待退出...");
+                //等待本次会话结束
                 while (iat.Status)
                 {
                     await Task.Delay(10);
@@ -76,6 +86,9 @@ namespace ASRDemo
             }
         }
 
+        /// <summary>
+        /// 一次识别一个完整的音频文件
+        /// </summary>
         static async void ASR()
         {
             string path = @"02.pcm";  //测试文件路径,自己修改
@@ -104,7 +117,7 @@ namespace ASRDemo
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
 
-                ResultModel<string> result = await iat.Convert(data);
+                ResultModel<string> result = await iat.ConvertAudio(data);
                 if (result.Code == ResultCode.Success)
                 {
                     Console.WriteLine("\n识别结果：" + result.Data);

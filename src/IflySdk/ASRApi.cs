@@ -20,7 +20,7 @@ namespace IflySdk
     public class ASRApi : IApi
     {
         private const int _frameSize = 1280;
-        private const int _intervel = 10;
+        private const int _intervel = 20;
         private FrameState _status = FrameState.First;
         private string _host;
         private ClientWebSocket _ws;
@@ -63,7 +63,7 @@ namespace IflySdk
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
-        public async Task<ResultModel<string>> Convert(byte[] data)
+        public async Task<ResultModel<string>> ConvertAudio(byte[] data)
         {
             try
             {
@@ -159,7 +159,7 @@ namespace IflySdk
         /// 分片转写语音
         /// </summary>
         /// <param name="data"></param>
-        public void ConvertAppend(byte[] data, bool isEnd = false)
+        public void Convert(byte[] data, bool isEnd = false)
         {
             if (!Status)
             {
@@ -206,7 +206,7 @@ namespace IflySdk
 
                 if (data == null || data.Buffer.Length == 0)
                 {
-                    if (stopwatch.ElapsedMilliseconds / 1000 > connectOutTime || (stopwatch.ElapsedMilliseconds - lastDataTimespan) / 1000 > sendDataOutTime)
+                    if ((stopwatch.ElapsedMilliseconds / 1000 > connectOutTime) || ((stopwatch.ElapsedMilliseconds - lastDataTimespan) / 1000 > sendDataOutTime))
                     {
                         data = new CacheBuffer()
                         {
@@ -225,14 +225,15 @@ namespace IflySdk
                     isStart = true;
                 }
                 ResultModel<string> fragmentResult;
-                if (data.IsEnd || stopwatch.ElapsedMilliseconds / 1000 > connectOutTime || (stopwatch.ElapsedMilliseconds - lastDataTimespan) / 1000 > sendDataOutTime)
+                if (data.IsEnd || (stopwatch.ElapsedMilliseconds / 1000 > connectOutTime) || ((stopwatch.ElapsedMilliseconds - lastDataTimespan) / 1000 > sendDataOutTime))
                 {
                     data.IsEnd = true;
                     fragmentResult = await DoFragmentAsr(data.Buffer, FrameState.Last);
                 }
                 else
+                {
                     fragmentResult = await DoFragmentAsr(data.Buffer);
-
+                }
                 if (fragmentResult.Code != ResultCode.Success)
                 {
                     string message = $"分片识别失败，错误：{fragmentResult.Message}";
