@@ -9,7 +9,6 @@ using IflySdk.Model.IAT;
 using System.Net.WebSockets;
 using System.Threading;
 using IflySdk.Common.Utils;
-using System.IO;
 using System.Collections.Generic;
 using IflySdk.Model.IAT.ResultNode;
 using System.Linq;
