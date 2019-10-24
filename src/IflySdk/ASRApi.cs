@@ -13,14 +13,22 @@ using System.IO;
 using System.Collections.Generic;
 using IflySdk.Model.IAT.ResultNode;
 using System.Linq;
+using System.Diagnostics;
 
 namespace IflySdk
 {
     public class ASRApi : IApi
     {
-        private bool _isEnd = false;
-
-        readonly List<ResultWPGSInfo> _resultBuffer = new List<ResultWPGSInfo>();
+        private const int _frameSize = 1280;
+        private const int _intervel = 10;
+        private FrameState _status = FrameState.First;
+        private string _host;
+        private ClientWebSocket _ws;
+        private readonly RestBuffer _rest = new RestBuffer(_frameSize);
+        private readonly Queue<CacheBuffer> _cache = new Queue<CacheBuffer>();
+        private readonly List<ResultWPGSInfo> _result = new List<ResultWPGSInfo>();
+        private readonly static object _cacheLocker = new object();
+        private Task _receiveTask = null;
 
         /// <summary>
         /// 错误
@@ -31,6 +39,11 @@ namespace IflySdk
         /// 动态显示识别结果
         /// </summary>
         public event EventHandler<string> OnMessage;
+
+        /// <summary>
+        /// 状态
+        /// </summary>
+        public bool Status { get; internal set; } = false;
 
         private readonly AppSettings _settings = null;
         private readonly CommonParams _common = null;
@@ -45,27 +58,30 @@ namespace IflySdk
             _business = business;
         }
 
+        /// <summary>
+        /// 语音转写一个完整的音频文件
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
         public async Task<ResultModel<string>> Convert(byte[] data)
         {
             try
             {
-                int frameSize = 1280, intervel = 10;
-                FrameState status = FrameState.First;
-                string host = ApiAuthorization.BuildAuthUrl(_settings);
-
-                using (var ws = new ClientWebSocket())
+                using (_ws = new ClientWebSocket())
                 {
-                    await ws.ConnectAsync(new Uri(host), CancellationToken.None);
-                    StartReceiving(ws);
+                    Status = true;
+                    _host = ApiAuthorization.BuildAuthUrl(_settings);
+                    await _ws.ConnectAsync(new Uri(_host), CancellationToken.None);
+                    _receiveTask = StartReceiving(_ws);
                     //开始发送数据
-                    for (int i = 0; i < data.Length; i += frameSize)
+                    for (int i = 0; i < data.Length; i += _frameSize)
                     {
-                        byte[] buffer = SubArray(data, i, frameSize);
-                        if (buffer == null || data.Length - i < frameSize)
+                        byte[] buffer = SubArray(data, i, _frameSize);
+                        if (buffer == null || data.Length - i < _frameSize)
                         {
-                            status = FrameState.Last;  //文件读完
+                            _status = FrameState.Last;  //文件读完
                         }
-                        switch (status)
+                        switch (_status)
                         {
                             case FrameState.First:
                                 FirstFrameData firstFrame = new FirstFrameData
@@ -76,11 +92,11 @@ namespace IflySdk
                                 };
                                 firstFrame.data.status = FrameState.First;
                                 firstFrame.data.audio = System.Convert.ToBase64String(buffer);
-                                await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(firstFrame)))
+                                await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(firstFrame)))
                                     , WebSocketMessageType.Text
                                     , true
                                     , CancellationToken.None);
-                                status = FrameState.Continue;
+                                _status = FrameState.Continue;
                                 break;
                             case FrameState.Continue:  //中间帧
                                 ContinueFrameData continueFrame = new ContinueFrameData
@@ -89,7 +105,7 @@ namespace IflySdk
                                 };
                                 continueFrame.data.status = FrameState.Continue;
                                 continueFrame.data.audio = System.Convert.ToBase64String(buffer);
-                                await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(continueFrame)))
+                                await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(continueFrame)))
                                     , WebSocketMessageType.Text
                                     , true
                                     , CancellationToken.None);
@@ -101,28 +117,28 @@ namespace IflySdk
                                 };
                                 lastFrame.data.status = FrameState.Last;
                                 lastFrame.data.audio = System.Convert.ToBase64String(buffer);
-                                await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(lastFrame)))
+                                await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(lastFrame)))
                                     , WebSocketMessageType.Text
                                     , true
                                     , CancellationToken.None);
                                 break;
                         }
-                        await Task.Delay(intervel);
+                        await Task.Delay(_intervel);
                     }
 
-                    while (!_isEnd)
+                    while (_receiveTask.Status != TaskStatus.RanToCompletion)
                     {
                         await Task.Delay(10);
                     }
-                    await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "NormalClosure", CancellationToken.None);
+                    await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "NormalClosure", CancellationToken.None);
                 }
 
                 StringBuilder result = new StringBuilder();
-                foreach (var item in _resultBuffer)
+                foreach (var item in _result)
                 {
                     result.Append(item.data);
                 }
-
+                ResetState();
                 return new ResultModel<string>()
                 {
                     Code = ResultCode.Success,
@@ -139,13 +155,255 @@ namespace IflySdk
             }
         }
 
+        /// <summary>
+        /// 分片转写语音
+        /// </summary>
+        /// <param name="data"></param>
+        public void ConvertAppend(byte[] data, bool isEnd = false)
+        {
+            if (!Status)
+            {
+                Task.Run(() => StartConvert());
+                Status = true;
+            }
+            lock (_cacheLocker)
+            {
+                _cache.Enqueue(new CacheBuffer()
+                {
+                    Buffer = data,
+                    IsEnd = isEnd
+                });
+            }
+        }
+
         #region private
 
-        private async void StartReceiving(ClientWebSocket client)
+        /// <summary>
+        /// 分片转写
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        private async void StartConvert()
         {
-            if (_resultBuffer != null)
+            Stopwatch stopwatch = new Stopwatch();
+            bool isStart = false;
+            long lastDataTimespan = 0;
+            int connectOutTime = 60;
+            int sendDataOutTime = 8;
+
+            while (Status)
             {
-                _resultBuffer.Clear();
+                CacheBuffer data = null;
+
+                lock (_cacheLocker)
+                {
+                    if (_cache.Count > 0)
+                    {
+                        data = _cache.Dequeue();
+                        lastDataTimespan = stopwatch.ElapsedMilliseconds;
+                    }
+                }
+
+                if (data == null || data.Buffer.Length == 0)
+                {
+                    if (stopwatch.ElapsedMilliseconds / 1000 > connectOutTime || (stopwatch.ElapsedMilliseconds - lastDataTimespan) / 1000 > sendDataOutTime)
+                    {
+                        data = new CacheBuffer()
+                        {
+                            Buffer = new byte[1] { 0 },
+                            IsEnd = true,
+                        };
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+                if (!isStart)
+                {
+                    stopwatch.Start();
+                    isStart = true;
+                }
+                ResultModel<string> fragmentResult;
+                if (data.IsEnd || stopwatch.ElapsedMilliseconds / 1000 > connectOutTime || (stopwatch.ElapsedMilliseconds - lastDataTimespan) / 1000 > sendDataOutTime)
+                {
+                    data.IsEnd = true;
+                    fragmentResult = await DoFragmentAsr(data.Buffer, FrameState.Last);
+                }
+                else
+                    fragmentResult = await DoFragmentAsr(data.Buffer);
+
+                if (fragmentResult.Code != ResultCode.Success)
+                {
+                    string message = $"分片识别失败，错误：{fragmentResult.Message}";
+                    OnError?.Invoke(this, new Model.Common.ErrorEventArgs()
+                    {
+                        Code = ResultCode.Warning,
+                        Message = message,
+                        Exception = new Exception(message),
+                    });
+                }
+                if (data.IsEnd)
+                {
+                    break;
+                }
+            }
+            stopwatch.Stop();
+            ResetState();
+        }
+
+        private async Task<ResultModel<string>> DoFragmentAsr(byte[] data, FrameState state = FrameState.First)
+        {
+            try
+            {
+                if (_ws == null && _status == FrameState.First)
+                {
+                    _ws = new ClientWebSocket();
+                    _status = FrameState.First;
+                    _host = ApiAuthorization.BuildAuthUrl(_settings);
+
+                    await _ws.ConnectAsync(new Uri(_host), CancellationToken.None);
+                    if (_ws.State != WebSocketState.Open)
+                    {
+                        throw new Exception("Connect to xfyun api server failed.");
+                    }
+                    _receiveTask = StartReceiving(_ws);
+                }
+
+                //开始发送数据
+                for (int i = 0; i < data.Length; i += _frameSize)
+                {
+                    byte[] buffer = null;
+                    if (_rest.Length == 0)  //没有上次分片的数据
+                    {
+                        if (data.Length - i < _frameSize)  //最后一帧不满一个完整的识别帧，那么加入缓存，下个分片的时候继续使用
+                        {
+                            if (state != FrameState.Last)
+                            {
+                                int length = data.Length - i;
+                                Array.Copy(data, i, _rest.Cache, 0, length);
+                                _rest.Length = length;
+                            }
+                            else
+                            {
+                                buffer = SubArray(data, i, _frameSize);
+                                _status = FrameState.Last;
+                            }
+                        }
+                        else
+                        {
+                            buffer = SubArray(data, i, _frameSize);
+                            if (state == FrameState.Last && data.Length - i == _frameSize)
+                            {
+                                _status = FrameState.Last;
+                                if (buffer == null)
+                                {
+                                    buffer = new byte[1] { 0 };
+                                }
+                            }
+                        }
+                    }
+                    else  //有上次分片的数据
+                    {
+                        if (data.Length + _rest.Length <= _frameSize)
+                        {
+                            buffer = new byte[_rest.Length + data.Length];
+                            Array.Copy(_rest.Cache, 0, buffer, 0, _rest.Length);
+                            //最后分片加上缓存不满一个帧大小的情况
+                            Array.Copy(data, i, buffer, _rest.Length, data.Length);
+                            _status = FrameState.Last;
+                            i = data.Length - _frameSize;
+                        }
+                        else
+                        {
+                            buffer = new byte[_frameSize];
+                            Array.Copy(_rest.Cache, 0, buffer, 0, _rest.Length);
+                            Array.Copy(data, i, buffer, _rest.Length, _frameSize - _rest.Length);
+                            i -= _rest.Length;
+                        }
+                        _rest.Clear();  //清空
+                    }
+
+                    if (_rest.Length != 0)
+                    {
+                        break;
+                    }
+
+                    switch (_status)
+                    {
+                        case FrameState.First:
+                            FirstFrameData firstFrame = new FirstFrameData
+                            {
+                                common = _common,
+                                business = _business,
+                                data = _data
+                            };
+                            firstFrame.data.status = FrameState.First;
+                            firstFrame.data.audio = System.Convert.ToBase64String(buffer);
+                            await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(firstFrame)))
+                                , WebSocketMessageType.Text
+                                , true
+                                , CancellationToken.None);
+                            _status = FrameState.Continue;
+                            break;
+                        case FrameState.Continue:  //中间帧
+                            ContinueFrameData continueFrame = new ContinueFrameData
+                            {
+                                data = _data
+                            };
+                            continueFrame.data.status = FrameState.Continue;
+                            continueFrame.data.audio = System.Convert.ToBase64String(buffer);
+                            await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(continueFrame)))
+                                , WebSocketMessageType.Text
+                                , true
+                                , CancellationToken.None);
+                            break;
+                        case FrameState.Last:    // 最后一帧音频
+                            LastFrameData lastFrame = new LastFrameData
+                            {
+                                data = _data
+                            };
+                            lastFrame.data.status = FrameState.Last;
+                            lastFrame.data.audio = System.Convert.ToBase64String(buffer);
+                            await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(lastFrame)))
+                                , WebSocketMessageType.Text
+                                , true
+                                , CancellationToken.None);
+                            break;
+                    }
+                    await Task.Delay(_intervel);
+                }
+
+                if (state == FrameState.Last)
+                {
+                    while (_receiveTask.Status != TaskStatus.RanToCompletion)
+                    {
+                        await Task.Delay(10);
+                    }
+
+                    await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "NormalClosure", CancellationToken.None);
+                }
+                return new ResultModel<string>()
+                {
+                    Code = ResultCode.Success,
+                    Data = null,
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ResultModel<string>()
+                {
+                    Code = ResultCode.Error,
+                    Message = ex.Message,
+                };
+            }
+        }
+
+        private async Task StartReceiving(ClientWebSocket client)
+        {
+            if (_result != null)
+            {
+                _result.Clear();
             }
             while (true)
             {
@@ -155,7 +413,6 @@ namespace IflySdk
                         client.CloseStatus == WebSocketCloseStatus.InternalServerError ||
                         client.CloseStatus == WebSocketCloseStatus.EndpointUnavailable)
                     {
-                        _isEnd = true;
                         return;
                     }
 
@@ -178,7 +435,6 @@ namespace IflySdk
                             || result.Data.result == null
                             || result.Data.result.ws == null)
                         {
-                            _isEnd = true;
                             return;
                         }
                         //分析数据
@@ -196,7 +452,7 @@ namespace IflySdk
                         }
                         if (result.Data.result.pgs == "apd")
                         {
-                            _resultBuffer.Add(new ResultWPGSInfo()
+                            _result.Add(new ResultWPGSInfo()
                             {
                                 sn = result.Data.result.sn,
                                 data = itemStringBuilder.ToString()
@@ -212,7 +468,7 @@ namespace IflySdk
                             int end = result.Data.result.rg[1];
                             try
                             {
-                                ResultWPGSInfo item = _resultBuffer.Where(p => p.sn >= first && p.sn <= end).SingleOrDefault();
+                                ResultWPGSInfo item = _result.Where(p => p.sn >= first && p.sn <= end).SingleOrDefault();
                                 if (item == null)
                                 {
                                     continue;
@@ -230,7 +486,7 @@ namespace IflySdk
                         }
 
                         StringBuilder totalStringBuilder = new StringBuilder();
-                        foreach (var item in _resultBuffer)
+                        foreach (var item in _result)
                         {
                             totalStringBuilder.Append(item.data);
                         }
@@ -239,13 +495,12 @@ namespace IflySdk
                         //最后一帧，结束
                         if (result.Data.status == 2)
                         {
-                            _isEnd = true;
+                            return;
                         }
                     }
                 }
                 catch (WebSocketException)
                 {
-                    _isEnd = true;
                     return;
                 }
                 catch (Exception ex)
@@ -256,11 +511,26 @@ namespace IflySdk
                         Message = ex.Message,
                         Exception = ex,
                     });
-                    _isEnd = true;
+                    return;
                 }
             }
         }
 
+        private void ResetState()
+        {
+            _status = FrameState.First;
+            _host = null;
+            _ws = null;
+            _receiveTask = null;
+            _rest.Clear();
+            _result.Clear();
+            Status = false;
+
+            lock (_cacheLocker)
+            {
+                _cache.Clear();
+            }
+        }
 
         /// <summary>
         /// 从此实例检索子数组

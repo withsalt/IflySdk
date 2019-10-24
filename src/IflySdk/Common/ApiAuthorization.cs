@@ -16,7 +16,7 @@ namespace IflySdk.Common
         /// <param name="apiSecretIsKey"></param>
         /// <param name="buider"></param>
         /// <returns></returns>
-        public static string HMACSha256(string apiSecretIsKey, string buider)
+        private static string HMACSha256(string apiSecretIsKey, string buider)
         {
             byte[] bytes = Encoding.UTF8.GetBytes(apiSecretIsKey);
 

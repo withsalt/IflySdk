@@ -12,6 +12,11 @@ namespace IflySdk.Enum
         Success = 0,
 
         /// <summary>
+        /// 警告
+        /// </summary>
+        Warning = 1,
+
+        /// <summary>
         /// 系统错误
         /// </summary>
         Error = 100,
