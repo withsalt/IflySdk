@@ -17,9 +17,6 @@ namespace TTSDemo
             Console.ReadKey(false);
         }
 
-        /// <summary>
-        /// 使用TTS时必须添加IP白名单
-        /// </summary>
         static async void TTS()
         {
             string str = @"两只黄鹂鸣翠柳，一行白鹭上青天";
