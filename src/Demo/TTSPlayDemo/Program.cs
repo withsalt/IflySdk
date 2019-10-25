@@ -2,13 +2,13 @@
 using IflySdk.Enum;
 using IflySdk.Model.Common;
 using NAudio.Wave;
-using PlayTTSDemo.Model;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using TTSPlayDemo.Model;
 
-namespace PlayTTSDemo
+namespace TTSPlayDemo
 {
     /// <summary>
     /// TTS转换后播放

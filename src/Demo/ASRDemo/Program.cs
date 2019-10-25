@@ -27,7 +27,7 @@ namespace ASRDemo
         /// </summary>
         static async void ASRStream()
         {
-            string path = @"02.pcm";  //测试文件路径,自己修改
+            string path = @"04.wav";  //测试文件路径,自己修改
             int frameSize = 10000;
             byte[] data = File.ReadAllBytes(path);
 

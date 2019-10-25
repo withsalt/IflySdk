@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace PlayTTSDemo.Model
+namespace TTSPlayDemo.Model
 {
     class CacheBuffer
     {
