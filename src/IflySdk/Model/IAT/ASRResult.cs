@@ -5,7 +5,7 @@ using IflySdk.Model.IAT.ResultNode;
 
 namespace IflySdk.Model.IAT
 {
-    class IATResult
+    class ASRResult
     {
         /// <summary>
         /// 

@@ -28,7 +28,7 @@ namespace ASRDemo
         static async void ASRStream()
         {
             string path = @"04.wav";  //测试文件路径,自己修改
-            int frameSize = 10000;
+            int frameSize = 3200;
             byte[] data = File.ReadAllBytes(path);
 
             try
@@ -58,7 +58,7 @@ namespace ASRDemo
                 for (int i = 0; i < data.Length; i += frameSize)
                 {
                     //模拟说话暂停
-                    await Task.Delay(150); 
+                    await Task.Delay(50); 
                     buffer = SubArray(data, i, frameSize);
                     if (buffer == null || data.Length - i < frameSize)
                     {
@@ -72,7 +72,7 @@ namespace ASRDemo
                     }
                 }
                 //等待本次会话结束
-                while (iat.Status)
+                while (iat.Status != ServiceStatus.Stopped)
                 {
                     await Task.Delay(10);
                 }

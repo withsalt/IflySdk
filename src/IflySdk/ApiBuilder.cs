@@ -19,6 +19,7 @@ namespace IflySdk
         private string _accent = "mandarin";
         private string _format = "audio/L16;rate=16000";
         private string _encoding = "raw";
+        private int _vad_eos = 3000;
 
         private EventHandler<Model.Common.ErrorEventArgs> _onError = null;
         private EventHandler<string> _onMessage = null;
@@ -40,19 +41,21 @@ namespace IflySdk
 
         #region ASR
 
-
         /// <summary>
-        /// 基本设置
+        /// 用于设置端点检测的静默时间，单位是毫秒，默认3000。
+        /// 即静默多长时间后引擎认为音频结束。
         /// </summary>
-        /// <param name="settings"></param>
+        /// <param name="uid"></param>
         /// <returns></returns>
-        public ApiBuilder WithAppSettings(AppSettings settings)
+        public ApiBuilder WithVadEos(int time)
         {
-            _settings = settings;
-            if (_settings == null
-                || string.IsNullOrEmpty(_settings.AppID))
+            if(time < 0 || time > 30000)
             {
-                throw new Exception("App setting cannot null.");
+                _vad_eos = 3000;
+            }
+            else
+            {
+                _vad_eos = time;
             }
             return this;
         }
@@ -183,17 +186,6 @@ namespace IflySdk
             return this;
         }
 
-        public ApiBuilder UseError(EventHandler<ErrorEventArgs> onError)
-        {
-            _onError = onError;
-            return this;
-        }
-
-        public ApiBuilder UseMessage(EventHandler<string> onMessage)
-        {
-            _onMessage = onMessage;
-            return this;
-        }
 
 
         public ASRApi BuildASR()
@@ -221,6 +213,7 @@ namespace IflySdk
                 language = _language,
                 domain = _domain,
                 accent = _accent,
+                vad_eos = _vad_eos,
             };
             _settings.ApiType = Enum.ApiType.ASR;
 
@@ -421,6 +414,36 @@ namespace IflySdk
             return api;
         }
 
+        #endregion
+
+        #region Public
+        public ApiBuilder UseError(EventHandler<ErrorEventArgs> onError)
+        {
+            _onError = onError;
+            return this;
+        }
+
+        public ApiBuilder UseMessage(EventHandler<string> onMessage)
+        {
+            _onMessage = onMessage;
+            return this;
+        }
+
+        /// <summary>
+        /// 基本设置
+        /// </summary>
+        /// <param name="settings"></param>
+        /// <returns></returns>
+        public ApiBuilder WithAppSettings(AppSettings settings)
+        {
+            _settings = settings;
+            if (_settings == null
+                || string.IsNullOrEmpty(_settings.AppID))
+            {
+                throw new Exception("App setting cannot null.");
+            }
+            return this;
+        }
         #endregion
     }
 }

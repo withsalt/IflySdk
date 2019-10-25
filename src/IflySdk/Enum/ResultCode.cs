@@ -17,6 +17,11 @@ namespace IflySdk.Enum
         Warning = 1,
 
         /// <summary>
+        /// 断开连接
+        /// </summary>
+        Disconnect = 2,
+
+        /// <summary>
         /// 系统错误
         /// </summary>
         Error = 100,

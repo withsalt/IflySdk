@@ -9,6 +9,7 @@ using System.Net.WebSockets;
 using System.Threading;
 using IflySdk.Enum;
 using IflySdk.Common.Utils;
+using System.Net.Sockets;
 
 namespace IflySdk
 {
@@ -89,11 +90,23 @@ namespace IflySdk
             }
             catch (Exception ex)
             {
-                return new ResultModel<byte[]>()
+                //服务器主动断开连接
+                if (ex.InnerException != null && ex.InnerException is SocketException && ((SocketException)ex.InnerException).SocketErrorCode == SocketError.ConnectionReset)
                 {
-                    Code = ResultCode.Error,
-                    Message = ex.Message,
-                };
+                    return new ResultModel<byte[]>()
+                    {
+                        Code = ResultCode.Error,
+                        Message = "服务器主动断开连接，可能是整个会话是否已经超过了60s、读取数据超时等原因引起的。",
+                    };
+                }
+                else
+                {
+                    return new ResultModel<byte[]>()
+                    {
+                        Code = ResultCode.Error,
+                        Message = ex.Message,
+                    };
+                }
             }
         }
 
@@ -153,13 +166,20 @@ namespace IflySdk
                 }
                 catch (Exception ex)
                 {
-                    OnError?.Invoke(this, new ErrorEventArgs()
-                    {
-                        Code = ResultCode.Error,
-                        Message = ex.Message,
-                        Exception = ex,
-                    });
                     _isEnd = true;
+                    if (ex.InnerException != null && ex.InnerException is SocketException && ((SocketException)ex.InnerException).SocketErrorCode == SocketError.ConnectionReset)
+                    {
+                        
+                    }
+                    else
+                    {
+                        OnError?.Invoke(this, new ErrorEventArgs()
+                        {
+                            Code = ResultCode.Error,
+                            Message = ex.Message,
+                            Exception = ex,
+                        });
+                    }
                 }
             }
         }

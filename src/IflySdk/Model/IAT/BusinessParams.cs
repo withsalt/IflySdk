@@ -22,7 +22,7 @@ namespace IflySdk.Model.IAT
         public string accent { get; set; } = "mandarin";
 
         /// <summary>
-        /// 
+        /// 静默检测超时
         /// </summary>
         public int vad_eos { get; set; } = 3000;
 

@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using IflySdk.Model.IAT.ResultNode;
 using System.Linq;
 using System.Diagnostics;
+using System.Net.Sockets;
 
 namespace IflySdk
 {
@@ -42,7 +43,7 @@ namespace IflySdk
         /// <summary>
         /// 状态
         /// </summary>
-        public bool Status { get; internal set; } = false;
+        public ServiceStatus Status { get; internal set; } = ServiceStatus.Stopped;
 
         private readonly AppSettings _settings = null;
         private readonly CommonParams _common = null;
@@ -68,7 +69,7 @@ namespace IflySdk
             {
                 using (_ws = new ClientWebSocket())
                 {
-                    Status = true;
+                    Status =  ServiceStatus.Running;
                     _host = ApiAuthorization.BuildAuthUrl(_settings);
                     await _ws.ConnectAsync(new Uri(_host), CancellationToken.None);
                     _receiveTask = StartReceiving(_ws);
@@ -160,18 +161,55 @@ namespace IflySdk
         /// <param name="data"></param>
         public void Convert(byte[] data, bool isEnd = false)
         {
-            if (!Status)
+            if (Status == ServiceStatus.Stopped)
             {
+                Status = ServiceStatus.Running;
                 Task.Run(() => StartConvert());
-                Status = true;
             }
-            lock (_cacheLocker)
+            if(Status == ServiceStatus.Running)
             {
-                _cache.Enqueue(new CacheBuffer()
+                lock (_cacheLocker)
                 {
-                    Buffer = data,
-                    IsEnd = isEnd
+                    if (isEnd)
+                    {
+                        Status = ServiceStatus.Stopping;
+                    }
+                    _cache.Enqueue(new CacheBuffer()
+                    {
+                        Data = data,
+                        IsEnd = isEnd
+                    });
+                }
+            }
+        }
+
+        /// <summary>
+        /// 退出
+        /// </summary>
+        /// <returns></returns>
+        public bool Stop()
+        {
+            try
+            {
+                if (Status != ServiceStatus.Stopped)
+                {
+                    Convert(null, true);
+                    while (Status != ServiceStatus.Stopped)
+                    {
+                        Thread.Sleep(10);
+                    }
+                }
+                return true;
+            }
+            catch(Exception ex)
+            {
+                OnError?.Invoke(this, new ErrorEventArgs()
+                {
+                    Code = ResultCode.Warning,
+                    Message = ex.Message,
+                    Exception = ex,
                 });
+                return false;
             }
         }
 
@@ -184,72 +222,100 @@ namespace IflySdk
         /// <returns></returns>
         private async void StartConvert()
         {
-            Stopwatch stopwatch = new Stopwatch();
-            bool isStart = false;
-            long lastDataTimespan = 0;
-            int connectOutTime = 60;
-            int sendDataOutTime = 8;
-
-            while (Status)
+            try
             {
-                CacheBuffer data = null;
+                Stopwatch stopwatch = new Stopwatch();
+                bool isStart = false;
+                long lastDataTimespan = 0;
+                int connectOutTime = 60;
+                int sendDataOutTime = 8;
 
-                lock (_cacheLocker)
+                while (Status != ServiceStatus.Stopped)
                 {
-                    if (_cache.Count > 0)
-                    {
-                        data = _cache.Dequeue();
-                        lastDataTimespan = stopwatch.ElapsedMilliseconds;
-                    }
-                }
+                    CacheBuffer data = null;
 
-                if (data == null || data.Buffer.Length == 0)
-                {
-                    if ((stopwatch.ElapsedMilliseconds / 1000 > connectOutTime) || ((stopwatch.ElapsedMilliseconds - lastDataTimespan) / 1000 > sendDataOutTime))
+                    lock (_cacheLocker)
                     {
-                        data = new CacheBuffer()
+                        if (_cache.Count > 0)
                         {
-                            Buffer = new byte[1] { 0 },
-                            IsEnd = true,
-                        };
+                            data = _cache.Dequeue();
+                            lastDataTimespan = stopwatch.ElapsedMilliseconds;
+                        }
+                    }
+
+                    if (data == null)
+                    {
+                        if ((stopwatch.ElapsedMilliseconds / 1000 > connectOutTime) || ((stopwatch.ElapsedMilliseconds - lastDataTimespan) / 1000 > sendDataOutTime))
+                        {
+                            data = new CacheBuffer(new byte[1] { 0 }, true);
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+
+                    if (!isStart)
+                    {
+                        stopwatch.Start();
+                        isStart = true;
+                    }
+
+                    ResultModel<string> fragmentResult;
+                    if (data.IsEnd || (stopwatch.ElapsedMilliseconds / 1000 > connectOutTime) || ((stopwatch.ElapsedMilliseconds - lastDataTimespan) / 1000 > sendDataOutTime))
+                    {
+                        data.IsEnd = true;
+                        if (data.Data == null)
+                            data.Data = new byte[1] { 0 };
+                        fragmentResult = await DoFragmentAsr(data.Data, FrameState.Last);
                     }
                     else
                     {
-                        continue;
+                        if (data.Data == null)
+                            continue;
+                        fragmentResult = await DoFragmentAsr(data.Data);
+                    }
+                    if (fragmentResult.Code == ResultCode.Disconnect)
+                    {
+                        OnError?.Invoke(this, new ErrorEventArgs()
+                        {
+                            Code = ResultCode.Warning,
+                            Message = fragmentResult.Message,
+                            Exception = new Exception(fragmentResult.Message),
+                        });
+                        break;
+                    }
+                    else if (fragmentResult.Code != ResultCode.Success)
+                    {
+                        string message = $"Recognition data failed. {fragmentResult.Message}";
+
+                        OnError?.Invoke(this, new ErrorEventArgs()
+                        {
+                            Code = ResultCode.Warning,
+                            Message = message,
+                            Exception = new Exception(message),
+                        });
+                    }
+                    if (data.IsEnd)
+                    {
+                        break;
                     }
                 }
-                if (!isStart)
-                {
-                    stopwatch.Start();
-                    isStart = true;
-                }
-                ResultModel<string> fragmentResult;
-                if (data.IsEnd || (stopwatch.ElapsedMilliseconds / 1000 > connectOutTime) || ((stopwatch.ElapsedMilliseconds - lastDataTimespan) / 1000 > sendDataOutTime))
-                {
-                    data.IsEnd = true;
-                    fragmentResult = await DoFragmentAsr(data.Buffer, FrameState.Last);
-                }
-                else
-                {
-                    fragmentResult = await DoFragmentAsr(data.Buffer);
-                }
-                if (fragmentResult.Code != ResultCode.Success)
-                {
-                    string message = $"分片识别失败，错误：{fragmentResult.Message}";
-                    OnError?.Invoke(this, new Model.Common.ErrorEventArgs()
-                    {
-                        Code = ResultCode.Warning,
-                        Message = message,
-                        Exception = new Exception(message),
-                    });
-                }
-                if (data.IsEnd)
-                {
-                    break;
-                }
+                stopwatch.Stop();
             }
-            stopwatch.Stop();
-            ResetState();
+            catch (Exception ex)
+            {
+                OnError?.Invoke(this, new ErrorEventArgs()
+                {
+                    Code = ResultCode.Warning,
+                    Message = ex.Message,
+                    Exception = new Exception(ex.Message),
+                });
+            }
+            finally
+            {
+                ResetState();
+            }
         }
 
         private async Task<ResultModel<string>> DoFragmentAsr(byte[] data, FrameState state = FrameState.First)
@@ -380,7 +446,6 @@ namespace IflySdk
                     {
                         await Task.Delay(10);
                     }
-
                     await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "NormalClosure", CancellationToken.None);
                 }
                 return new ResultModel<string>()
@@ -391,11 +456,32 @@ namespace IflySdk
             }
             catch (Exception ex)
             {
-                return new ResultModel<string>()
+                //服务器主动断开连接
+                if (ex.InnerException != null && ex.InnerException is SocketException && ((SocketException)ex.InnerException).SocketErrorCode == SocketError.ConnectionReset)
                 {
-                    Code = ResultCode.Error,
-                    Message = ex.Message,
-                };
+                    try
+                    {
+                        await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "NormalClosure", CancellationToken.None);
+                    }
+                    catch { }
+                    while (_receiveTask.Status != TaskStatus.RanToCompletion)
+                    {
+                        await Task.Delay(10);
+                    }
+                    return new ResultModel<string>()
+                    {
+                        Code = ResultCode.Disconnect,
+                        Message = "服务器主动断开连接，可能是整个会话是否已经超过了60s、读取数据超时、静默检测超时等原因引起的。",
+                    };
+                }
+                else
+                {
+                    return new ResultModel<string>()
+                    {
+                        Code = ResultCode.Error,
+                        Message = ex.Message,
+                    };
+                }
             }
         }
 
@@ -426,10 +512,10 @@ namespace IflySdk
                         }
 
                         string msg = Encoding.UTF8.GetString(array, 0, receive.Count);
-                        IATResult result = JsonHelper.DeserializeJsonToObject<IATResult>(msg);
+                        ASRResult result = JsonHelper.DeserializeJsonToObject<ASRResult>(msg);
                         if (result.Code != 0)
                         {
-                            throw new Exception($"Result error: {result.Message}");
+                            throw new Exception($"Result error({result.Code}): {result.Message}");
                         }
                         if (result.Data == null
                             || result.Data.result == null
@@ -505,7 +591,12 @@ namespace IflySdk
                 }
                 catch (Exception ex)
                 {
-                    OnError?.Invoke(this, new Model.Common.ErrorEventArgs()
+                    //服务器主动断开连接
+                    if (ex.InnerException != null && ex.InnerException is SocketException && ((SocketException)ex.InnerException).SocketErrorCode == SocketError.ConnectionReset)
+                    {
+                        return;
+                    }
+                    OnError?.Invoke(this, new ErrorEventArgs()
                     {
                         Code = ResultCode.Error,
                         Message = ex.Message,
@@ -524,7 +615,7 @@ namespace IflySdk
             _receiveTask = null;
             _rest.Clear();
             _result.Clear();
-            Status = false;
+            Status = ServiceStatus.Stopped;
 
             lock (_cacheLocker)
             {
