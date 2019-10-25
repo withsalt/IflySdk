@@ -13,8 +13,8 @@ namespace ASRDemo
     {
         static void Main()
         {
-            ASRStream();
-            //ASR();
+            ASR();
+            //ASRAudio();
 
             Console.ReadKey(false);
         }
@@ -25,7 +25,7 @@ namespace ASRDemo
         /// 
         /// 分片大小建议至少在10000以上。小于6000就可能影响到识别速率（也取决于输入频率）。
         /// </summary>
-        static async void ASRStream()
+        static async void ASR()
         {
             string path = @"04.wav";  //测试文件路径,自己修改
             int frameSize = 3200;
@@ -58,7 +58,7 @@ namespace ASRDemo
                 for (int i = 0; i < data.Length; i += frameSize)
                 {
                     //模拟说话暂停
-                    await Task.Delay(50); 
+                    await Task.Delay(50);
                     buffer = SubArray(data, i, frameSize);
                     if (buffer == null || data.Length - i < frameSize)
                     {
@@ -88,7 +88,7 @@ namespace ASRDemo
         /// <summary>
         /// 一次识别一个完整的音频文件
         /// </summary>
-        static async void ASR()
+        static async void ASRAudio()
         {
             string path = @"02.pcm";  //测试文件路径,自己修改
             byte[] data = File.ReadAllBytes(path);

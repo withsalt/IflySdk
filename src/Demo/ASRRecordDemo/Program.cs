@@ -53,10 +53,10 @@ namespace ASRRecordDemo
                 wave.BufferMilliseconds = 50;
                 wave.DataAvailable += (s, a) =>
                 {
-                    byte[] buffer = SubArray(a.Buffer,0, a.BytesRecorded);
+                    byte[] buffer = SubArray(a.Buffer, 0, a.BytesRecorded);
                     iat.Convert(buffer);
 
-                    if (sw.ElapsedMilliseconds/1000 > 60)
+                    if (sw.ElapsedMilliseconds / 1000 > 60)
                     {
                         wave.StopRecording();
                     }
