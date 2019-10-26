@@ -33,7 +33,7 @@ namespace IflySdk
         /// <summary>
         /// 错误
         /// </summary>
-        public event EventHandler<Model.Common.ErrorEventArgs> OnError;
+        public event EventHandler<ErrorEventArgs> OnError;
 
         /// <summary>
         /// 动态显示识别结果
@@ -69,7 +69,7 @@ namespace IflySdk
             {
                 using (_ws = new ClientWebSocket())
                 {
-                    Status =  ServiceStatus.Running;
+                    Status = ServiceStatus.Running;
                     _host = ApiAuthorization.BuildAuthUrl(_settings);
                     await _ws.ConnectAsync(new Uri(_host), CancellationToken.None);
                     _receiveTask = StartReceiving(_ws);
@@ -166,7 +166,7 @@ namespace IflySdk
                 Status = ServiceStatus.Running;
                 Task.Run(() => StartConvert());
             }
-            if(Status == ServiceStatus.Running)
+            if (Status == ServiceStatus.Running)
             {
                 lock (_cacheLocker)
                 {
@@ -201,7 +201,7 @@ namespace IflySdk
                 }
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 OnError?.Invoke(this, new ErrorEventArgs()
                 {
@@ -456,8 +456,8 @@ namespace IflySdk
             }
             catch (Exception ex)
             {
-                //服务器主动断开连接
-                if (ex.InnerException != null && ex.InnerException is SocketException && ((SocketException)ex.InnerException).SocketErrorCode == SocketError.ConnectionReset)
+                //服务器主动断开连接或者自动断开连接了
+                if (ex.Message.ToLower().Contains("unable to read data from the transport connection"))
                 {
                     try
                     {
@@ -592,16 +592,15 @@ namespace IflySdk
                 catch (Exception ex)
                 {
                     //服务器主动断开连接
-                    if (ex.InnerException != null && ex.InnerException is SocketException && ((SocketException)ex.InnerException).SocketErrorCode == SocketError.ConnectionReset)
+                    if (!ex.Message.ToLower().Contains("unable to read data from the transport connection"))
                     {
-                        return;
+                        OnError?.Invoke(this, new ErrorEventArgs()
+                        {
+                            Code = ResultCode.Error,
+                            Message = ex.Message,
+                            Exception = ex,
+                        });
                     }
-                    OnError?.Invoke(this, new ErrorEventArgs()
-                    {
-                        Code = ResultCode.Error,
-                        Message = ex.Message,
-                        Exception = ex,
-                    });
                     return;
                 }
             }

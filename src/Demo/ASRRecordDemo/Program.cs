@@ -17,7 +17,7 @@ namespace ASRRecordDemo
             Console.ReadKey(false);
         }
 
-        static async void ASRRecord()
+        static void ASRRecord()
         {
             try
             {

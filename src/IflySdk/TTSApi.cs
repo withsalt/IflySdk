@@ -15,14 +15,17 @@ namespace IflySdk
 {
     public class TTSApi
     {
-        private bool _isEnd = false;
+        private readonly List<byte> _result = new List<byte>();
 
-        List<byte> _resultBuffer = new List<byte>();
+        /// <summary>
+        /// 状态
+        /// </summary>
+        public ServiceStatus Status { get; internal set; } = ServiceStatus.Stopped;
 
         /// <summary>
         /// 错误
         /// </summary>
-        public event EventHandler<Model.Common.ErrorEventArgs> OnError;
+        public event EventHandler<ErrorEventArgs> OnError;
 
         /// <summary>
         /// 动态显示识别结果
@@ -46,6 +49,7 @@ namespace IflySdk
         {
             try
             {
+                Status = ServiceStatus.Running;
                 //BuildAuthUrl
                 string host = ApiAuthorization.BuildAuthUrl(_settings);
                 //Base64 convert string
@@ -76,7 +80,7 @@ namespace IflySdk
                     //string send = JsonHelper.SerializeObject(frame);
                     await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(frame))), WebSocketMessageType.Text, true, CancellationToken.None);
 
-                    while (!_isEnd)
+                    while (Status == ServiceStatus.Running)
                     {
                         await Task.Delay(10);
                     }
@@ -85,7 +89,7 @@ namespace IflySdk
                 return new ResultModel<byte[]>()
                 {
                     Code = ResultCode.Success,
-                    Data = _resultBuffer == null ? null : _resultBuffer.ToArray(),
+                    Data = _result == null ? null : _result.ToArray(),
                 };
             }
             catch (Exception ex)
@@ -112,9 +116,9 @@ namespace IflySdk
 
         private async void StartReceiving(ClientWebSocket client)
         {
-            if (_resultBuffer != null)
+            if (_result != null)
             {
-                _resultBuffer.Clear();
+                _result.Clear();
             }
             while (true)
             {
@@ -124,7 +128,7 @@ namespace IflySdk
                         client.CloseStatus == WebSocketCloseStatus.InternalServerError ||
                         client.CloseStatus == WebSocketCloseStatus.EndpointUnavailable)
                     {
-                        _isEnd = true;
+                        Status = ServiceStatus.Stopped;
                         return;
                     }
                     //唔，足够大的缓冲区
@@ -149,29 +153,25 @@ namespace IflySdk
                             continue;
                         }
                         byte[] audiaBuffer = System.Convert.FromBase64String(result.Data.Audio);
-                        _resultBuffer.AddRange(audiaBuffer);
+                        _result.AddRange(audiaBuffer);
 
                         OnMessage?.Invoke(this, result.Data.Audio);
 
                         if (result.Data.Status == 2)
                         {
-                            _isEnd = true;
+                            Status = ServiceStatus.Stopped;
                         }
                     }
                 }
                 catch (WebSocketException)
                 {
-                    _isEnd = true;
+                    Status = ServiceStatus.Stopped;
                     return;
                 }
                 catch (Exception ex)
                 {
-                    _isEnd = true;
-                    if (ex.InnerException != null && ex.InnerException is SocketException && ((SocketException)ex.InnerException).SocketErrorCode == SocketError.ConnectionReset)
-                    {
-                        
-                    }
-                    else
+                    Status = ServiceStatus.Stopped;
+                    if (!ex.Message.ToLower().Contains("unable to read data from the transport connection"))
                     {
                         OnError?.Invoke(this, new ErrorEventArgs()
                         {
