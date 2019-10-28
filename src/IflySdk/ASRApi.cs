@@ -168,12 +168,12 @@ namespace IflySdk
             }
             if (Status == ServiceStatus.Running)
             {
+                if (isEnd)
+                {
+                    Status = ServiceStatus.Stopping;
+                }
                 lock (_cacheLocker)
                 {
-                    if (isEnd)
-                    {
-                        Status = ServiceStatus.Stopping;
-                    }
                     _cache.Enqueue(new CacheBuffer()
                     {
                         Data = data,
@@ -185,6 +185,7 @@ namespace IflySdk
 
         /// <summary>
         /// 退出
+        /// 注意：并不是马上退出，程序会等待当前队列中的音频识别完成手退出
         /// </summary>
         /// <returns></returns>
         public bool Stop()
