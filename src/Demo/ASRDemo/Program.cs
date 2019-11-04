@@ -25,106 +25,106 @@ namespace ASRDemo
         /// 
         /// 分片大小建议至少在3000以上。小于1000就可能影响到识别速率（也取决于输入频率）。
         /// </summary>
-static async void ASR()
-{
-    string path = @"02.pcm";  //测试文件路径,自己修改
-    int frameSize = 3200;
-    byte[] data = File.ReadAllBytes(path);
-
-    try
-    {
-        ASRApi iat = new ApiBuilder()
-            .WithAppSettings(new AppSettings()
-            {
-                ApiKey = "7b845bf729c3eeb97be6de4d29e0b446",
-                ApiSecret = "50c591a9cde3b1ce14d201db9d793b01",
-                AppID = "5c56f257"
-            })
-            .UseError((sender, e) =>
-            {
-                Console.WriteLine("错误：" + e.Message);
-            })
-            .UseMessage((sender, e) =>
-            {
-                Console.WriteLine("实时结果：" + e);
-            })
-            .BuildASR();
-
-        //计算识别时间
-        Stopwatch sw = new Stopwatch();
-        sw.Start();
-
-        for (int i = 0; i < data.Length; i += frameSize)
+        static async void ASR()
         {
-            //模拟说话暂停
-            await Task.Delay(100);
-            iat.Convert(SubArray(data, i, frameSize));
+            string path = @"02.pcm";  //测试文件路径,自己修改
+            int frameSize = 3200;
+            byte[] data = File.ReadAllBytes(path);
+
+            try
+            {
+                ASRApi iat = new ApiBuilder()
+                    .WithAppSettings(new AppSettings()
+                    {
+                        ApiKey = "7b845bf729c3eeb97be6de4d29e0b446",
+                        ApiSecret = "50c591a9cde3b1ce14d201db9d793b01",
+                        AppID = "5c56f257"
+                    })
+                    .UseError((sender, e) =>
+                    {
+                        Console.WriteLine("错误：" + e.Message);
+                    })
+                    .UseMessage((sender, e) =>
+                    {
+                        Console.WriteLine("实时结果：" + e);
+                    })
+                    .BuildASR();
+
+                //计算识别时间
+                Stopwatch sw = new Stopwatch();
+                sw.Start();
+
+                for (int i = 0; i < data.Length; i += frameSize)
+                {
+                    //模拟说话暂停
+                    await Task.Delay(100);
+                    iat.Convert(SubArray(data, i, frameSize));
+                }
+                //结束本次会话
+                iat.Stop();
+                //等待本次会话结束
+                while (iat.Status != ServiceStatus.Stopped)
+                {
+                    await Task.Delay(10);
+                }
+                sw.Stop();
+                Console.WriteLine($"总共花费{Math.Round(sw.Elapsed.TotalSeconds, 2)}秒。");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
-        //结束本次会话
-        iat.Stop();
-        //等待本次会话结束
-        while (iat.Status != ServiceStatus.Stopped)
-        {
-            await Task.Delay(10);
-        }
-        sw.Stop();
-        Console.WriteLine($"总共花费{Math.Round(sw.Elapsed.TotalSeconds, 2)}秒。");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine(ex.Message);
-    }
-}
 
         /// <summary>
         /// 一次识别一个完整的音频文件
         /// </summary>
-static async void ASRAudio()
-{
-    string path = @"02.pcm";  //测试文件路径,自己修改
-    byte[] data = File.ReadAllBytes(path);
-
-    try
-    {
-        ASRApi iat = new ApiBuilder()
-            .WithAppSettings(new AppSettings()
-            {
-                ApiKey = "7b845bf729c3eeb97be6de4d29e0b446",
-                ApiSecret = "50c591a9cde3b1ce14d201db9d793b01",
-                AppID = "5c56f257"
-            })
-            .UseError((sender, e) =>
-            {
-                Console.WriteLine("错误：" + e.Message);
-            })
-            .UseMessage((sender, e) =>
-            {
-                Console.WriteLine("实时结果：" + e);
-            })
-            .BuildASR();
-
-        //计算识别时间
-        Stopwatch sw = new Stopwatch();
-        sw.Start();
-
-        ResultModel<string> result = await iat.ConvertAudio(data);
-        if (result.Code == ResultCode.Success)
+        static async void ASRAudio()
         {
-            Console.WriteLine("\n识别结果：" + result.Data);
-        }
-        else
-        {
-            Console.WriteLine("\n识别错误：" + result.Message);
-        }
+            string path = @"02.pcm";  //测试文件路径,自己修改
+            byte[] data = File.ReadAllBytes(path);
 
-        sw.Stop();
-        Console.WriteLine($"总共花费{Math.Round(sw.Elapsed.TotalSeconds, 2)}秒。");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine(ex.Message);
-    }
-}
+            try
+            {
+                ASRApi iat = new ApiBuilder()
+                    .WithAppSettings(new AppSettings()
+                    {
+                        ApiKey = "7b845bf729c3eeb97be6de4d29e0b446",
+                        ApiSecret = "50c591a9cde3b1ce14d201db9d793b01",
+                        AppID = "5c56f257"
+                    })
+                    .UseError((sender, e) =>
+                    {
+                        Console.WriteLine("错误：" + e.Message);
+                    })
+                    .UseMessage((sender, e) =>
+                    {
+                        Console.WriteLine("实时结果：" + e);
+                    })
+                    .BuildASR();
+
+                //计算识别时间
+                Stopwatch sw = new Stopwatch();
+                sw.Start();
+
+                ResultModel<string> result = await iat.ConvertAudio(data);
+                if (result.Code == ResultCode.Success)
+                {
+                    Console.WriteLine("\n识别结果：" + result.Data);
+                }
+                else
+                {
+                    Console.WriteLine("\n识别错误：" + result.Message);
+                }
+
+                sw.Stop();
+                Console.WriteLine($"总共花费{Math.Round(sw.Elapsed.TotalSeconds, 2)}秒。");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
 
         private static byte[] SubArray(byte[] source, int startIndex, int length)
         {
