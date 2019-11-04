@@ -20,7 +20,7 @@ namespace TTSPlayDemo.Model
         public CacheBuffer(byte[] buffer, bool isEnd)
         {
             this.Data = buffer;
-            this.IsEnd = IsEnd;
+            this.IsEnd = isEnd;
         }
 
         public byte[] Data { get; set; }

@@ -1,25 +1,27 @@
 # IflySdk
-科大讯飞SDK，目前支持流式语音识别、语音合成。
+科大讯飞SDK，目前支持流式语音识别、语音合成。兼容Linux和Windows。
 
 ### 注意
-（1）、其中的AppID和ApiKey为测试APP，只有500次调用量，用完即止。请更换为自己的APP。  
-（2）、语音听写（流式版）请开启动态修正（仅中文普通话支持），否则会运行出错！  
+（1）、其中的AppID和ApiKey为测试APP，每日只有500次调用量，用完即止。请更换为自己的APP。  
+（2）、语音听写（流式版）请开启动态修正（仅中文普通话支持，免费），否则会运行出错！  
+（3）、ASRRecordDemo（实时录音识别）和TTSPlayDemo（实时TTS播放）仅支持在Windows中运行，因为依赖于NAudio，而NAudio仅支持在Widnows上面录音和播放。其余demo均兼容Linux和Windows。同时欢迎Pull Linux demo。  
 
 ### 参考
 - [语音听写（流式版）WebAPI C#Demo](http://bbs.xfyun.cn/forum.php?mod=viewthread&tid=42499&highlight=C%23)
 - 官方TTS Demo
+- [NAudio](https://github.com/naudio/NAudio "NAudio")
 
 ### 使用方法
 #### ASR（语音听写）
 语音识别有两种模式。第一种是识别一个完整的音频文件，第二种是实时识别，可以一边输入音频，一边进行语音识别。  
-实时识别需要注意的是：a.整个会话时长最多持续60s，或者超过10s未发送数据服务器会自动断开连接。但是识别过程不会停止，会自动开启一个新的会话进行识别。b.每次输入的分片大小建议在10000以上，小于6000就可能影响到识别速率（也取决于输入频率）。
+实时识别需要注意的是：a.整个会话时长最多持续60s，或者超过10s未发送数据服务器会自动断开连接。但是识别过程不会停止，会自动开启一个新的会话进行识别。b.每次输入的分片大小建议在3000以上，小于1000就可能影响到识别速率（也取决于输入频率）。
 
 （1）、实时识别
 ```csharp
-static async void ASRStream()
+static async void ASR()
 {
     string path = @"02.pcm";  //测试文件路径,自己修改
-    int frameSize = 10000;
+    int frameSize = 3200;
     byte[] data = File.ReadAllBytes(path);
 
     try
@@ -45,25 +47,16 @@ static async void ASRStream()
         Stopwatch sw = new Stopwatch();
         sw.Start();
 
-        byte[] buffer = null;
         for (int i = 0; i < data.Length; i += frameSize)
         {
             //模拟说话暂停
-            await Task.Delay(150);
-            buffer = SubArray(data, i, frameSize);
-            if (buffer == null || data.Length - i < frameSize)
-            {
-                //最后一个分片。
-                //一定要输入最后一个分片，不然只有等到服务器断开连接后才会退出本次识别。
-                iat.Convert(buffer, true);
-            }
-            else
-            {
-                iat.Convert(buffer);
-            }
+            await Task.Delay(100);
+            iat.Convert(SubArray(data, i, frameSize));
         }
+        //结束本次会话
+        iat.Stop();
         //等待本次会话结束
-        while (iat.Status)
+        while (iat.Status != ServiceStatus.Stopped)
         {
             await Task.Delay(10);
         }
@@ -79,7 +72,7 @@ static async void ASRStream()
 
 （2）、识别一个完整的音频
 ```csharp
-static async void ASR()
+static async void ASRAudio()
 {
     string path = @"02.pcm";  //测试文件路径,自己修改
     byte[] data = File.ReadAllBytes(path);
@@ -107,7 +100,7 @@ static async void ASR()
         Stopwatch sw = new Stopwatch();
         sw.Start();
 
-        ResultModel<string> result = await iat.Convert(data);
+        ResultModel<string> result = await iat.ConvertAudio(data);
         if (result.Code == ResultCode.Success)
         {
             Console.WriteLine("\n识别结果：" + result.Data);
@@ -158,7 +151,7 @@ static async void TTS()
         ResultModel<byte[]> result = await tts.Convert(str);
         if (result.Code == ResultCode.Success)
         {
-            //注意：转换后的结果为16K的单声道原始音频，可以使用Audacity来测速播放。
+            //注意：转换后的结果为16K的单声道原始音频，可以使用ffmpeg来测速播放。
             string path = Path.Combine(Environment.CurrentDirectory, "test.pcm");
             using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write))
             {

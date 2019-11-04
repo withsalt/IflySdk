@@ -184,8 +184,8 @@ namespace IflySdk
         }
 
         /// <summary>
-        /// 退出
-        /// 注意：并不是马上退出，程序会等待当前队列中的音频识别完成手退出
+        /// 退出本次会话
+        /// 注意：并不是马上退出，程序会等待当前队列中的音频识别完成后退出
         /// </summary>
         /// <returns></returns>
         public bool Stop()

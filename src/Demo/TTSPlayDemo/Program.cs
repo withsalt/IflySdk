@@ -109,7 +109,7 @@ namespace TTSPlayDemo
                 wo.Init(rs);
                 wo.Play();
 
-                while (_status)
+                while (_status && !isEnd)
                 {
                     CacheBuffer data = null;
                     lock (_cacheLocker)
@@ -117,16 +117,13 @@ namespace TTSPlayDemo
                         if (_cache.Count == 0)
                             continue;
                         data = _cache.Dequeue();
-                        if (data == null)
-                            continue;
                     }
+                    if (data == null)
+                        continue;
                     if (data.Data != null)
                         rs.AddSamples(data.Data, 0, data.Data.Length);
-                    if (data.IsEnd)
-                    {
-                        isEnd = true;
+                    if (isEnd = data.IsEnd)
                         break;
-                    }
                 }
                 while (wo.PlaybackState == PlaybackState.Playing)
                 {

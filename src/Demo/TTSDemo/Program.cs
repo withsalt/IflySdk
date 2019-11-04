@@ -42,7 +42,7 @@ namespace TTSDemo
                 ResultModel<byte[]> result = await tts.Convert(str);
                 if (result.Code == ResultCode.Success)
                 {
-                    //注意：转换后的结果为16K的单声道原始音频，可以使用Audacity来测速播放。
+                    //注意：转换后的结果为16K的单声道原始音频，可以使用ffmpeg来测试播放。
                     string path = Path.Combine(Environment.CurrentDirectory, "test.pcm");
                     using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write))
                     {
