@@ -1,7 +1,7 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace IflySdk.Model.TTS
 {
@@ -40,7 +40,7 @@ namespace IflySdk.Model.TTS
         /// <summary>
         /// 保存位置
         /// </summary>
-        [JsonIgnoreAttribute]
+        [JsonIgnore]
         public string save_path { get; set; }
 
         #endregion

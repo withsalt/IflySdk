@@ -1,15 +1,15 @@
-﻿using IflySdk.Common;
-using IflySdk.Model.Common;
-using IflySdk.Model.TTS;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using System.Net.WebSockets;
 using System.Threading;
-using IflySdk.Enum;
-using IflySdk.Common.Utils;
 using System.Net.Sockets;
+using IflySdk.Enum;
+using IflySdk.Common;
+using IflySdk.Model.Common;
+using IflySdk.Model.TTS;
+using System.Text.Json;
 
 namespace IflySdk
 {
@@ -57,7 +57,7 @@ namespace IflySdk
                 {
                     throw new Exception("Convert data is null.");
                 }
-                string base64Text = Base64.Base64Encode(data);
+                string base64Text = System.Convert.ToBase64String(Encoding.UTF8.GetBytes(data));
                 if (base64Text.Length > 8000)
                 {
                     throw new Exception("Convert string too long. No more than 2000 chinese characters.");
@@ -78,7 +78,7 @@ namespace IflySdk
                         data = _data
                     };
                     //string send = JsonHelper.SerializeObject(frame);
-                    await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(frame))), WebSocketMessageType.Text, true, CancellationToken.None);
+                    await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(frame))), WebSocketMessageType.Text, true, CancellationToken.None);
 
                     while (Status == ServiceStatus.Running)
                     {
@@ -142,7 +142,10 @@ namespace IflySdk
                         }
 
                         string msg = Encoding.UTF8.GetString(array, 0, receive.Count);
-                        TTSResult result = JsonHelper.DeserializeJsonToObject<TTSResult>(msg);
+                        TTSResult result = JsonSerializer.Deserialize<TTSResult>(msg, new JsonSerializerOptions()
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
                         if (result.Code != 0)
                         {
                             throw new Exception($"Result error: {result.Message}");

@@ -49,7 +49,7 @@ namespace IflySdk
         /// <returns></returns>
         public ApiBuilder WithVadEos(int time)
         {
-            if(time < 0 || time > 30000)
+            if (time < 0 || time > 30000)
             {
                 _vad_eos = 3000;
             }

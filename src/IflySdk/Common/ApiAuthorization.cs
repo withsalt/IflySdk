@@ -1,9 +1,8 @@
 ﻿using System;
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
 using System.Web;
-
-using IflySdk.Common.Utils;
 using IflySdk.Model.Common;
 
 namespace IflySdk.Common
@@ -48,7 +47,7 @@ namespace IflySdk.Common
             urlBuilder.Append(uri.ToString());
             urlBuilder.Append("?");
             urlBuilder.Append("authorization=");
-            urlBuilder.Append(Base64.Base64Encode(authorization));
+            urlBuilder.Append(Convert.ToBase64String(Encoding.UTF8.GetBytes(authorization)));
             urlBuilder.Append("&");
             urlBuilder.Append("date=");
             urlBuilder.Append(HttpUtility.UrlEncode(date).Replace("+", "%20"));  //默认会将空格编码为+号

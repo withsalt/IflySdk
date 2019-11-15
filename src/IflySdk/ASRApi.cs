@@ -8,12 +8,12 @@ using IflySdk.Model.Common;
 using IflySdk.Model.IAT;
 using System.Net.WebSockets;
 using System.Threading;
-using IflySdk.Common.Utils;
 using System.Collections.Generic;
 using IflySdk.Model.IAT.ResultNode;
 using System.Linq;
 using System.Diagnostics;
 using System.Net.Sockets;
+using System.Text.Json;
 
 namespace IflySdk
 {
@@ -92,7 +92,7 @@ namespace IflySdk
                                 };
                                 firstFrame.data.status = FrameState.First;
                                 firstFrame.data.audio = System.Convert.ToBase64String(buffer);
-                                await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(firstFrame)))
+                                await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(firstFrame)))
                                     , WebSocketMessageType.Text
                                     , true
                                     , CancellationToken.None);
@@ -105,7 +105,7 @@ namespace IflySdk
                                 };
                                 continueFrame.data.status = FrameState.Continue;
                                 continueFrame.data.audio = System.Convert.ToBase64String(buffer);
-                                await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(continueFrame)))
+                                await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(continueFrame)))
                                     , WebSocketMessageType.Text
                                     , true
                                     , CancellationToken.None);
@@ -117,7 +117,7 @@ namespace IflySdk
                                 };
                                 lastFrame.data.status = FrameState.Last;
                                 lastFrame.data.audio = System.Convert.ToBase64String(buffer);
-                                await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(lastFrame)))
+                                await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(lastFrame)))
                                     , WebSocketMessageType.Text
                                     , true
                                     , CancellationToken.None);
@@ -407,7 +407,7 @@ namespace IflySdk
                             };
                             firstFrame.data.status = FrameState.First;
                             firstFrame.data.audio = System.Convert.ToBase64String(buffer);
-                            await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(firstFrame)))
+                            await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(firstFrame)))
                                 , WebSocketMessageType.Text
                                 , true
                                 , CancellationToken.None);
@@ -420,7 +420,7 @@ namespace IflySdk
                             };
                             continueFrame.data.status = FrameState.Continue;
                             continueFrame.data.audio = System.Convert.ToBase64String(buffer);
-                            await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(continueFrame)))
+                            await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(continueFrame)))
                                 , WebSocketMessageType.Text
                                 , true
                                 , CancellationToken.None);
@@ -432,7 +432,7 @@ namespace IflySdk
                             };
                             lastFrame.data.status = FrameState.Last;
                             lastFrame.data.audio = System.Convert.ToBase64String(buffer);
-                            await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.SerializeObject(lastFrame)))
+                            await _ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(lastFrame)))
                                 , WebSocketMessageType.Text
                                 , true
                                 , CancellationToken.None);
@@ -513,7 +513,10 @@ namespace IflySdk
                         }
 
                         string msg = Encoding.UTF8.GetString(array, 0, receive.Count);
-                        ASRResult result = JsonHelper.DeserializeJsonToObject<ASRResult>(msg);
+                        ASRResult result = JsonSerializer.Deserialize<ASRResult>(msg, new JsonSerializerOptions()
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
                         if (result.Code != 0)
                         {
                             throw new Exception($"Result error({result.Code}): {result.Message}");
