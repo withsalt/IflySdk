@@ -13,8 +13,8 @@ namespace ASRDemo
     {
         static void Main()
         {
-            //ASR();
-            ASRAudio();
+            ASR();
+            //ASRAudio();
 
             Console.ReadKey(false);
         }
