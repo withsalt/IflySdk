@@ -20,7 +20,7 @@ namespace TTSDemo
 
         static async void TTS()
         {
-            string str = @"两只黄鹂鸣翠柳，一行白鹭上青天";
+            string str = @"白皮书说，党的十八大以来，中国的核安全事业进入安全高效发展的新时期。在核安全观引领下，中国逐步构建起法律规范、行政监管、行业自律、技术保障、人才支撑、文化引领、社会参与、国际合作等为主体的核安全治理体系，核安全防线更加牢固。";
             try
             {
                 TTSApi tts = new ApiBuilder()
@@ -47,7 +47,7 @@ namespace TTSDemo
                     .BuildTTS();
                 
                 ResultModel<byte[]> result = await tts.Convert(str);
-                if (result.Code == ResultCode.Success)
+                if (result.Code == IflySdk.Enum.ResultCode.Success)
                 {
                     //注意：转换后的结果为16K的单声道原始音频，可以使用ffmpeg来测试播放。
                     string path = Path.Combine(Environment.CurrentDirectory, "test.pcm");
