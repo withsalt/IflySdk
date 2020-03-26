@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using IflySdk;
+using IflySdk.Common;
 using IflySdk.Enum;
 using IflySdk.Model.Common;
 
@@ -19,7 +20,7 @@ namespace TTSDemo
 
         static async void TTS()
         {
-            string str = @"两只黄鹂鸣翠柳，一行白鹭上青天";
+            string str = @"白皮书说，党的十八大以来，中国的核安全事业进入安全高效发展的新时期。在核安全观引领下，中国逐步构建起法律规范、行政监管、行业自律、技术保障、人才支撑、文化引领、社会参与、国际合作等为主体的核安全治理体系，核安全防线更加牢固。";
             try
             {
                 TTSApi tts = new ApiBuilder()
@@ -29,6 +30,9 @@ namespace TTSDemo
                         ApiSecret = "50c591a9cde3b1ce14d201db9d793b01",
                         AppID = "5c56f257"
                     })
+                    .WithVcn("xiaoyan")
+                    .WithVolume(50)
+                    .WithSpeed(50)
                     .UseError((sender, e) =>
                     {
                         Console.WriteLine(e.Message);
@@ -38,7 +42,7 @@ namespace TTSDemo
                         Console.WriteLine("结果：" + e.Substring(0, 20) + "...");  //Base64的结果。没显示完
                     })
                     .BuildTTS();
-
+                
                 ResultModel<byte[]> result = await tts.Convert(str);
                 if (result.Code == ResultCode.Success)
                 {
@@ -51,6 +55,9 @@ namespace TTSDemo
                     }
                     if (File.Exists(path))
                     {
+                        PcmToWav pcm = new PcmToWav();
+                        pcm.ConverterToWav(path);
+
                         Console.WriteLine("保存成功！");
                     }
                     else
