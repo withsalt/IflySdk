@@ -60,7 +60,13 @@ namespace IflySdk.Common
         //            //    binaryWriter.Write(16000);// 16KHz 采样频率                     
         //            //    binaryWriter.Write(32000); //每秒所需字节数  
 
-        public string ConverterToWav(string pcmPath)
+        /// <summary>
+        /// 转换为WAV格式
+        /// </summary>
+        /// <param name="pcmPath">PCM文件路径</param>
+        /// <param name="wavPath">WAV保存路径，如果为空则默认保存到PCM路径</param>
+        /// <returns></returns>
+        public string ConverterToWav(string pcmPath, string wavPath=null)
         {
 
             //判断文件是否存在 
@@ -69,7 +75,10 @@ namespace IflySdk.Common
                 return null ;
             if (fi.Extension != ".pcm")
                 return null;
-            string wavPath = fi.FullName.Replace(".pcm", ".wav");
+            if (string.IsNullOrEmpty(wavPath))
+            {
+                wavPath = fi.FullName.Replace(".pcm", ".wav");
+            }
 
             //如果输出文件存在，就删除原文件并创建
             if (File.Exists(wavPath))
