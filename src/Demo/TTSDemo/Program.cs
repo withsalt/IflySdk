@@ -20,7 +20,7 @@ namespace TTSDemo
 
         static async void TTS()
         {
-            string str = @"白皮书说，党的十八大以来，中国的核安全事业进入安全高效发展的新时期。在核安全观引领下，中国逐步构建起法律规范、行政监管、行业自律、技术保障、人才支撑、文化引领、社会参与、国际合作等为主体的核安全治理体系，核安全防线更加牢固。";
+            string str = @"两只黄鹂鸣翠柳，一行白鹭上青天";
             try
             {
                 TTSApi tts = new ApiBuilder()
@@ -30,8 +30,11 @@ namespace TTSDemo
                         ApiSecret = "50c591a9cde3b1ce14d201db9d793b01",
                         AppID = "5c56f257"
                     })
+                    //设置发音人
                     .WithVcn("xiaoyan")
+                    //设置音量
                     .WithVolume(50)
+                    //设置语速
                     .WithSpeed(50)
                     .UseError((sender, e) =>
                     {
@@ -55,6 +58,7 @@ namespace TTSDemo
                     }
                     if (File.Exists(path))
                     {
+                        //转pcm为wav格式
                         PcmToWav pcm = new PcmToWav();
                         pcm.ConverterToWav(path);
 
