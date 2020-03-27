@@ -14,6 +14,7 @@ using System.Linq;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text.Json;
+using ClientWebSocket = System.Net.WebSockets.Managed.ClientWebSocket;
 
 namespace IflySdk
 {

@@ -10,6 +10,8 @@ using IflySdk.Common;
 using IflySdk.Model.Common;
 using IflySdk.Model.TTS;
 using System.Text.Json;
+using System.Net.WebSockets.Managed;
+using ClientWebSocket = System.Net.WebSockets.Managed.ClientWebSocket;
 
 namespace IflySdk
 {
