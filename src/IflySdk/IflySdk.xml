@@ -1,0 +1,590 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>IflySdk</name>
+    </assembly>
+    <members>
+        <member name="M:IflySdk.ApiBuilder.WithVadEos(System.Int32)">
+            <summary>
+            用于设置端点检测的静默时间，单位是毫秒，默认3000。
+            即静默多长时间后引擎认为音频结束。
+            </summary>
+            <param name="uid"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithUid(System.String)">
+            <summary>
+            请求用户服务返回的uid，用户及设备级别个性化功能依赖此参数
+            </summary>
+            <param name="uid"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithLanguage(System.String)">
+            <summary>
+            语种
+            zh_cn：中文（支持简单的英文识别）
+            en_us：英文
+            ja_jp：日语
+            ko_kr：韩语
+            ru-ru：俄语
+            注：日韩俄小语种若未授权无法使用会报错11200，可到控制台-语音听写（流式版）-方言/语种处添加试用或购买。
+            另外，小语种接口URL与中英文不同，详见接口要求。
+            </summary>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithDomain(System.String)">
+            <summary>
+            应用领域
+            iat：日常用语
+            medical：医疗
+            注：医疗领域若未授权无法使用，可到控制台-语音听写（流式版）-高级功能处添加试用或购买；若未授权状态下设置该参数并不会报错，但不会生效。
+            </summary>
+            <param name="domain"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithAccent(System.String)">
+            <summary>
+            方言选项，当前仅在language为中文时，支持方言选择。默认mandarin
+            mandarin：中文普通话、其他语种
+            其他方言：可到控制台-语音听写（流式版）-方言/语种处添加试用或购买，添加后会显示该方言参数值；方言若未授权无法使用会报错11200。
+            </summary>
+            <param name="accent"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithFormat(System.String)">
+            <summary>
+            音频的采样率支持16k和8k，默认16k
+            16k音频：audio/L16;rate=16000
+            8k音频：audio/L16;rate=8000
+            </summary>
+            <param name="format"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithEncoding(System.String)">
+            <summary>
+            音频数据格式
+            raw：原生音频（支持单声道的pcm和wav）
+            speex：speex压缩后的音频（8k）
+            speex-wb：speex压缩后的音频（16k）
+            其他请根据音频格式设置为匹配的值：amr、amr-wb、amr-wb-fx、ico、ict、opus、opus-wb、opus-ogg
+            请注意压缩前也必须是采样率16k或8k单声道的pcm或wav格式。
+            样例音频请参照 音频样例（https://www.xfyun.cn/doc/asr/voicedictation/API.html#%E8%B0%83%E7%94%A8%E7%A4%BA%E4%BE%8B）
+            </summary>
+            <param name="encoding"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithBusinessParams(IflySdk.Model.TTS.BusinessParams)">
+            <summary>
+            TTS配置参数
+            </summary>
+            <param name="business"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithEnt(System.String)">
+            <summary>
+            引擎类型
+            aisound（普通效果）
+            intp65（中文）
+            intp65_en（英文）
+            xtts（优化效果）
+            默认为intp65
+            </summary>
+            <param name="ent"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithAue(System.String)">
+            <summary>
+            音频编码
+            speex：压缩格式
+            speex-wb;7：压缩格式，压缩等级1 ~10，默认为7
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithAuf(System.String)">
+            <summary>
+            音频采样率
+            audio/L16;rate=16000
+            audio/L16;rate=8000
+            (目前官网"x_"系列发音人中仅讯飞虫虫，讯飞春春，讯飞飞飞，讯飞刚刚，讯飞宋宝宝，讯飞小包，讯飞小东，讯飞小肥，讯飞小乔，讯飞小瑞，讯飞小师，讯飞小王，讯飞颖儿支持8k)
+            </summary>
+            <param name="auf"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithVcn(System.String)">
+            <summary>
+            发音人，可选值详见控制台-我的应用-在线语音合成服务管理-发音人授权管理，使用方法参考官网
+            </summary>
+            <param name="voiceName"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithSpeed(System.Int32)">
+            <summary>
+            语速，可选值：[0-100]，默认为50
+            </summary>
+            <param name="speed"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithVolume(System.Int32)">
+            <summary>
+            音量，可选值：[0-100]，默认为50
+            </summary>
+            <param name="volume"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithTte(System.String)">
+            <summary>
+            文本编码格式
+            GB2312、GBK、BIG5、UNICODE、GB18030、UTF8
+            </summary>
+            <param name="tte"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithSavePath(System.String)">
+            <summary>
+            保存文件路径
+            </summary>
+            <param name="savePath"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ApiBuilder.WithAppSettings(IflySdk.Model.Common.AppSettings)">
+            <summary>
+            基本设置
+            </summary>
+            <param name="settings"></param>
+            <returns></returns>
+        </member>
+        <member name="E:IflySdk.ASRApi.OnError">
+            <summary>
+            错误
+            </summary>
+        </member>
+        <member name="E:IflySdk.ASRApi.OnMessage">
+            <summary>
+            动态显示识别结果
+            </summary>
+        </member>
+        <member name="P:IflySdk.ASRApi.Status">
+            <summary>
+            状态
+            </summary>
+        </member>
+        <member name="M:IflySdk.ASRApi.ConvertAudio(System.Byte[])">
+            <summary>
+            语音转写一个完整的音频文件
+            </summary>
+            <param name="data"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ASRApi.Convert(System.Byte[],System.Boolean)">
+            <summary>
+            分片转写语音
+            </summary>
+            <param name="data"></param>
+        </member>
+        <member name="M:IflySdk.ASRApi.Stop">
+            <summary>
+            退出本次会话
+            注意：并不是马上退出，程序会等待当前队列中的音频识别完成后退出
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ASRApi.StartConvert">
+            <summary>
+            分片转写
+            </summary>
+            <param name="data"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.ASRApi.SubArray(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            从此实例检索子数组
+            </summary>
+            <param name="source">要检索的数组</param>
+            <param name="startIndex">起始索引号</param>
+            <param name="length">检索最大长度</param>
+            <returns>与此实例中在 startIndex 处开头、长度为 length 的子数组等效的一个数组</returns>
+        </member>
+        <member name="M:IflySdk.Common.ApiAuthorization.HMACSha256(System.String,System.String)">
+            <summary>
+            加密
+            </summary>
+            <param name="apiSecretIsKey"></param>
+            <param name="buider"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IflySdk.Common.PcmToWav.ConverterToWav(System.String,System.String)">
+            <summary>
+            转换为WAV格式
+            </summary>
+            <param name="pcmPath">PCM文件路径</param>
+            <param name="wavPath">WAV保存路径，如果为空则默认保存到PCM路径</param>
+            <returns></returns>
+        </member>
+        <member name="F:IflySdk.Enum.ResultCode.Success">
+            <summary>
+            成功
+            </summary>
+        </member>
+        <member name="F:IflySdk.Enum.ResultCode.Warning">
+            <summary>
+            警告
+            </summary>
+        </member>
+        <member name="F:IflySdk.Enum.ResultCode.Disconnect">
+            <summary>
+            断开连接
+            </summary>
+        </member>
+        <member name="F:IflySdk.Enum.ResultCode.Error">
+            <summary>
+            系统错误
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.Common.AppSettings.AppID">
+            <summary>
+            AppID
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.Common.AppSettings.ApiSecret">
+            <summary>
+            ApiSecret
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.Common.AppSettings.ApiKey">
+            <summary>
+            ApiKey
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.Common.AppSettings.ASRUrl">
+            <summary>
+            ASR接口地址
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.Common.AppSettings.TTSUrl">
+            <summary>
+            TTS接口地址
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ASRResult.Code">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ASRResult.Message">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ASRResult.Sid">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ASRResult.Data">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.BusinessParams.language">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.BusinessParams.domain">
+            <summary>
+            日常领域
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.BusinessParams.accent">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.BusinessParams.vad_eos">
+            <summary>
+            静默检测超时
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.BusinessParams.dwa">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.BusinessParams.pd">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.BusinessParams.ptt">
+            <summary>
+            （仅中文支持）是否开启标点符号添加 1：开启（默认值） 0：关闭
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.BusinessParams.nunum">
+            <summary>
+            中英日支持）将返回结果的数字格式规则为阿拉伯数字格式，默认开启
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.BusinessParams.nbest">
+            <summary>
+            取值范围[1,5]，通过设置此参数，获取在发音相似时的句子多侯选结果。设置多候选会影响性能，响应时间延迟200ms左右。
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.BusinessParams.wbest">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.CommonParams.app_id">
+            <summary>
+            在平台申请的APPID信息
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.CommonParams.uid">
+            <summary>
+            请求用户服务返回的uid，用户及设备级别个性化功能依赖此参数
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.DataParams.status">
+            <summary>
+            音频的状态
+            0 :第一帧音频
+            1 :中间的音频
+            2 :最后一帧音频，最后一帧必须要发送
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.DataParams.format">
+            <summary>
+            音频的采样率支持16k和8k
+            16k音频：audio/L16;rate=16000
+            8k音频：audio/L16;rate=8000
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.DataParams.encoding">
+            <summary>
+            音频数据格式
+            raw：原生音频（支持单声道的pcm和wav）
+            speex：speex压缩后的音频（8k）
+            speex-wb：speex压缩后的音频（16k）
+            其他请根据音频格式设置为匹配的值：amr、amr-wb、amr-wb-fx、ico、ict、opus、opus-wb、opus-ogg
+            请注意压缩前也必须是采样率16k或8k单声道的pcm或wav格式。
+            样例音频请参照音频样例
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.DataParams.audio">
+            <summary>
+            音频内容，采用base64编码
+            </summary>
+        </member>
+        <member name="M:IflySdk.Model.IAT.RestBuffer.Clear">
+            <summary>
+            清空
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ResultNode.CwItem.sc">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ResultNode.CwItem.w">
+            <summary>
+            转换出来的文字
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ResultNode.Data.result">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ResultNode.Data.status">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ResultNode.Result.bg">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ResultNode.Result.ed">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ResultNode.Result.ls">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ResultNode.Result.pgs">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ResultNode.Result.rg">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ResultNode.Result.sn">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ResultNode.Result.ws">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ResultNode.WsItem.bg">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.IAT.ResultNode.WsItem.cw">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.BusinessParams.ent">
+            <summary>
+            引擎类型
+            aisound（普通效果）
+            intp65（中文）
+            intp65_en（英文）
+            xtts（优化效果）
+            默认为intp65
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.BusinessParams.aue">
+            <summary>
+            音频编码
+            speex：压缩格式
+            speex-wb;7：压缩格式，压缩等级1 ~10，默认为7
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.BusinessParams.auf">
+            <summary>
+            音频采样率
+            audio/L16;rate=16000
+            audio/L16;rate=8000
+            (目前官网"x_"系列发音人中仅讯飞虫虫，讯飞春春，讯飞飞飞，讯飞刚刚，讯飞宋宝宝，讯飞小包，讯飞小东，讯飞小肥，讯飞小乔，讯飞小瑞，讯飞小师，讯飞小王，讯飞颖儿支持8k)
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.BusinessParams.vcn">
+            <summary>
+            发音人，可选值详见控制台-我的应用-在线语音合成服务管理-发音人授权管理，使用方法参考官网
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.BusinessParams.speed">
+            <summary>
+            语速，可选值：[0-100]，默认为50
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.BusinessParams.volume">
+            <summary>
+            音量，可选值：[0-100]，默认为50
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.BusinessParams.tte">
+            <summary>
+            文本编码格式
+            GB2312、GBK、BIG5、UNICODE、GB18030、UTF8
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.BusinessParams.save_path">
+            <summary>
+            保存文件路径
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.CommonParams.app_id">
+            <summary>
+            在平台申请的APPID信息
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.CommonParams.uid">
+            <summary>
+            请求用户服务返回的uid，用户及设备级别个性化功能依赖此参数
+            </summary>
+        </member>
+        <member name="T:IflySdk.Model.TTS.TTSParams">
+            <summary>
+            TTS参数
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.TTSParams.AppSettings">
+            <summary>
+            讯飞接口配置
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.TTSParams.BusinessParams">
+            <summary>
+            TTS参数设置
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.TTSParams.Text">
+            <summary>
+            文本内容
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.TTSParams.DisableCache">
+            <summary>
+            禁用缓存
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.TTSParams.ReturnBase64">
+            <summary>
+            True返回ReturnBase64数据，False返回wav下载链接。
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.TTSResult.Code">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.TTSResult.Message">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.TTSResult.Sid">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.TTSResult.Data">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.TTSResultData.Audio">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.TTSResultData.Ced">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.Model.TTS.TTSResultData.Status">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:IflySdk.TTSApi.Status">
+            <summary>
+            状态
+            </summary>
+        </member>
+        <member name="E:IflySdk.TTSApi.OnError">
+            <summary>
+            错误
+            </summary>
+        </member>
+        <member name="E:IflySdk.TTSApi.OnMessage">
+            <summary>
+            动态显示识别结果
+            </summary>
+        </member>
+    </members>
+</doc>
