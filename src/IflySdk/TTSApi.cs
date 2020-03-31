@@ -124,8 +124,9 @@ namespace IflySdk
             {
                 _result.Clear();
             }
-
+            //单次完整数据
             string msg = "";
+
             while (true)
             {
                 try
@@ -149,6 +150,7 @@ namespace IflySdk
 
                         //string msg = Encoding.UTF8.GetString(array, 0, receive.Count);
                         //在Winform中无法把json一次完整接收，需要判断EndOfMessage的状态。
+                        //临时不完整数据
                         string tempMsg = Encoding.UTF8.GetString(array, 0, receive.Count);
                         msg += tempMsg;
                         if (receive.EndOfMessage == false)
@@ -160,7 +162,10 @@ namespace IflySdk
                         {
                             PropertyNameCaseInsensitive = true
                         });
+
+                        //清空数据
                         msg = "";
+
                         if (result.Code != 0)
                         {
                             throw new Exception($"Result error: {result.Message}");
