@@ -228,6 +228,27 @@ namespace IflySdk
         #region TTS
 
         /// <summary>
+        /// TTS配置参数
+        /// </summary>
+        /// <param name="business"></param>
+        /// <returns></returns>
+        public ApiBuilder WithBusinessParams(Model.TTS.BusinessParams business)
+        {
+            if (business != null)
+            {
+                _ent = business.ent;
+                _aue = business.aue;
+                _auf = business.auf;
+                _vcn = business.vcn;
+                _speed = business.speed;
+                _volume = business.volume;
+                _tte = business.tte;
+            }
+
+            return this;
+        }
+ 
+        /// <summary>
         /// 引擎类型
         /// aisound（普通效果）
         /// intp65（中文）
@@ -366,7 +387,7 @@ namespace IflySdk
         /// <summary>
         /// 保存文件路径
         /// </summary>
-        /// <param name="engineType"></param>
+        /// <param name="savePath"></param>
         /// <returns></returns>
         public ApiBuilder WithSavePath(string savePath)
         {

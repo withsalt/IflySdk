@@ -10,6 +10,8 @@ using IflySdk.Common;
 using IflySdk.Model.Common;
 using IflySdk.Model.TTS;
 using System.Text.Json;
+using System.Net.WebSockets.Managed;
+using ClientWebSocket = System.Net.WebSockets.Managed.ClientWebSocket;
 
 namespace IflySdk
 {
@@ -84,7 +86,9 @@ namespace IflySdk
                     {
                         await Task.Delay(10);
                     }
-                    await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "NormalClosure", CancellationToken.None);
+                    //await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "NormalClosure", CancellationToken.None);
+                    //在Winform中会提示：调用 WebSocket.CloseAsync 后收到的消息类型“Text”无效。只有在不需要从远程终结点得到更多数据时，才应使用 WebSocket.CloseAsync。请改用“WebSocket.CloseOutputAsync”保持能够接收数据，但关闭输出通道。
+                    await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "NormalClosure", CancellationToken.None);
                 }
                 return new ResultModel<byte[]>()
                 {
@@ -120,6 +124,9 @@ namespace IflySdk
             {
                 _result.Clear();
             }
+            //单次完整数据
+            string msg = "";
+
             while (true)
             {
                 try
@@ -141,11 +148,24 @@ namespace IflySdk
                             continue;
                         }
 
-                        string msg = Encoding.UTF8.GetString(array, 0, receive.Count);
+                        //string msg = Encoding.UTF8.GetString(array, 0, receive.Count);
+                        //在Winform中无法把json一次完整接收，需要判断EndOfMessage的状态。
+                        //临时不完整数据
+                        string tempMsg = Encoding.UTF8.GetString(array, 0, receive.Count);
+                        msg += tempMsg;
+                        if (receive.EndOfMessage == false)
+                        {
+                            continue;
+                        }
+
                         TTSResult result = JsonSerializer.Deserialize<TTSResult>(msg, new JsonSerializerOptions()
                         {
                             PropertyNameCaseInsensitive = true
                         });
+
+                        //清空数据
+                        msg = "";
+
                         if (result.Code != 0)
                         {
                             throw new Exception($"Result error: {result.Message}");
