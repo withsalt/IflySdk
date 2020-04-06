@@ -65,8 +65,8 @@ namespace ASRRecordDemo
                 {
                     Console.WriteLine("退出...");
                 };
-                Console.WriteLine("开始识别...");
                 wave.StartRecording();
+                Console.WriteLine("开始识别...");
 
                 //注册退出事件
                 Console.CancelKeyPress += (object sender, ConsoleCancelEventArgs eventArgs) =>
