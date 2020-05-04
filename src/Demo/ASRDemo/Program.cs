@@ -57,15 +57,13 @@ namespace ASRDemo
                 for (int i = 0; i < data.Length; i += frameSize)
                 {
                     //模拟说话暂停
-                    await Task.Delay(100);
+                    await Task.Delay(80);
                     iat.Convert(SubArray(data, i, frameSize));
                 }
                 //结束本次会话
-                iat.Stop();
-                //等待本次会话结束
-                while (iat.Status != ServiceStatus.Stopped)
+                if (iat.Stop())
                 {
-                    await Task.Delay(10);
+                    Console.WriteLine("语音识别已结束...");
                 }
                 sw.Stop();
                 Console.WriteLine($"总共花费{Math.Round(sw.Elapsed.TotalSeconds, 2)}秒。");

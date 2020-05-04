@@ -9,5 +9,6 @@ namespace IflySdk.Enum
         Running,
         Stopping,
         Stopped,
+        InnerStop,
     }
 }
