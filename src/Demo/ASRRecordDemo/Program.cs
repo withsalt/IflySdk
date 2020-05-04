@@ -62,11 +62,6 @@ namespace ASRRecordDemo
                 {
                     byte[] buffer = SubArray(a.Buffer, 0, a.BytesRecorded);
                     iat.Convert(buffer);
-
-                    if (sw.ElapsedMilliseconds / 1000 > 60)
-                    {
-                        wave.StopRecording();
-                    }
                 };
                 wave.RecordingStopped += (s, a) =>
                 {
@@ -81,7 +76,7 @@ namespace ASRRecordDemo
                     bool state = iat.Stop();
                     if (state)
                     {
-                        Console.WriteLine($"[{DateTime.Now.ToString()}]->语音识别已退出...");
+                        Console.WriteLine($"[{DateTime.Now.ToString()}]->语音识别已结束...");
                     }
                     wave.StopRecording();
                 };
