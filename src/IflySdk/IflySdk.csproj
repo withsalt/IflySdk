@@ -8,14 +8,13 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>E:\测试项目\IflySdk\src\IflySdk\IflySdk.xml</DocumentationFile>
-  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="IflySdk.xml" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Net.WebSockets.Client.Managed" Version="1.0.22" />
-    <PackageReference Include="System.Text.Json" Version="4.7.1" />
+    <PackageReference Include="System.Text.Json" Version="5.0.2" />
   </ItemGroup>
 
 </Project>
