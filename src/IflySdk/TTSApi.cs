@@ -62,7 +62,7 @@ namespace IflySdk
                 string base64Text = System.Convert.ToBase64String(Encoding.UTF8.GetBytes(data));
                 if (base64Text.Length > 8000)
                 {
-                    throw new Exception("Convert string too long. No more than 2000 chinese characters.");
+                    throw new Exception("Convert string too long. No more than 4000 chinese characters.");
                 }
 
                 using (var ws = new ClientWebSocket())
