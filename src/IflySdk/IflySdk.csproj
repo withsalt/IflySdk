@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <PackageReference Include="System.Net.WebSockets.Client.Managed" Version="1.0.22" />
-    <PackageReference Include="System.Text.Json" Version="8.0.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.4" />
   </ItemGroup>
 
 </Project>
